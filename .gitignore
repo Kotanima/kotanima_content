@@ -1,0 +1,8 @@
+.vscode/
+__pycache__/
+static/
+FINAL.txt
+cache_dict.pickle
+.env
+Backups/
+scrape_download/
