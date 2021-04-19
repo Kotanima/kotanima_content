@@ -128,10 +128,11 @@ def insert_pic_record(cursor,
                       url: str,
                       created_utc: str,
                       phash: str,
-                      wrong_format: bool):
-    query = """INSERT INTO my_app_redditpost (sub_name, post_id, author, title, url, created_utc, phash, wrong_format) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
+                      wrong_format: bool,
+                      selected: bool):
+    query = """INSERT INTO my_app_redditpost (sub_name, post_id, author, title, url, created_utc, phash, wrong_format, selected) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
     cursor.execute(query, (sub_name, post_id, author, title, url,
-                           created_utc, phash, wrong_format))
+                           created_utc, phash, wrong_format, selected))
 
 
 def does_post_id_exist(cursor, table_name: str, post_id: str) -> bool:
@@ -316,7 +317,7 @@ def add_filtered_submissions_to_db(connection, filtered_submissions, subreddit_n
                 try:
                     # print(subm.url)
                     insert_pic_record(cursor=cur, sub_name=subreddit_name, post_id=str(subm.id), author=str(subm.author), title=str(subm.title),
-                                      url=str(subm.url), created_utc=str(int(subm.created_utc)), phash=img_hash, wrong_format=wrong_format)
+                                      url=str(subm.url), created_utc=str(int(subm.created_utc)), phash=img_hash, wrong_format=wrong_format, selected=None)
 
                     inserted += 1
                 except psql_err.UniqueViolation:
