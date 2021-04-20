@@ -137,7 +137,7 @@ def get_mal_id_vis_and_invis_tags(conn, title):
         detected_obj = detect_anime_from_string(conn, temp_title)
         if detected_obj:
             break
-    print(detected_obj)
+    # print(detected_obj)
     char = None
     anime_id = None
     if detected_obj:

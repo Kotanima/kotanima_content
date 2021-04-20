@@ -20,11 +20,10 @@ STATIC_PATH = os.getenv("STATIC_FOLDER_PATH")
 
 
 def main():
-    # add_metadata_to_approved_posts()
+    add_metadata_to_approved_posts()
 
     conn, _ = connect_to_db()
     OWNER_ID = int(os.environ.get("VK_KOTANIMA_OWNER_ID"))
-    return
 
     last_post_date, postponed_posts_amount = get_latest_post_date_and_total_count(OWNER_ID)
 
