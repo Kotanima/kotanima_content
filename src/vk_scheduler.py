@@ -74,7 +74,7 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
     except IndexError:
         return  # or not ?
 
-    similar_img_paths = get_similar_imgs_by_histogram_correlation(first_img_path, img_paths, CORRELATION_LIMIT=0.7, search_amount=2)
+    similar_img_paths = get_similar_imgs_by_histogram_correlation(first_img_path, img_paths, CORRELATION_LIMIT=0.9, search_amount=2)
     res_img_paths = [first_img_path] + similar_img_paths
 
     first_obj = post_data_img_path_dict[first_img_path]
