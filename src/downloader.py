@@ -126,12 +126,18 @@ def optimize_latest_file(file_name: str):
             img = Image.open(file_name).convert('RGB')
         except OSError:
             print(f"Couldnt open image {file_name}")
-            p.unlink()
+            try:
+                p.unlink()
+            except FileNotFoundError:
+                pass
             return
 
         new_file_name = str(file_name).removesuffix(extensions) + '.jpg'
         img.save(new_file_name)
-        p.unlink()
+        try:
+            p.unlink()
+        except FileNotFoundError:
+            pass
 
     file_name = file_name or new_file_name
     optimize_image(file_name)
