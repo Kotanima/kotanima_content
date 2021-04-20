@@ -31,7 +31,6 @@ def get_reddit_post_data(cursor, limit: int):
               WHERE sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape')
               AND phash NOT IN (SELECT phash FROM my_app_vkpost)
               AND wrong_format=false
-              AND dislike is NULL
               AND selected is NULL
               ORDER BY RANDOM()
               LIMIT {limit}"""
@@ -208,7 +207,7 @@ def main():
         print("Enough files")
     else:
         print("Downloading more")
-        download_more(1)
+        download_more(25)
 
 
 if __name__ == '__main__':
