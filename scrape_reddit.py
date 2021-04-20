@@ -14,8 +14,10 @@ import praw
 import psycopg2
 import psycopg2.errors as psql_err
 from dotenv import find_dotenv, load_dotenv
-from PIL import Image
+from PIL import Image, ImageFile
 from psaw import PushshiftAPI
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True  # else OsError
 
 load_dotenv(find_dotenv())
 

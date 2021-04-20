@@ -4,11 +4,14 @@ import pathlib
 import subprocess
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageFile
 
 from image_similarity import generate_hist_cache
 from postgres import (connect_to_db, get_disliked_posts,
                       set_selected_status_by_phash)
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True  # else OsError
+
 
 STATIC_FOLDER_PATH = './static'
 
@@ -119,7 +122,13 @@ def optimize_latest_file(file_name: str):
     p = Path(file_name)
     extensions = "".join(p.suffixes)
     if extensions != '.jpg':
-        img = Image.open(file_name).convert('RGB')
+        try:
+            img = Image.open(file_name).convert('RGB')
+        except OSError:
+            print(f"Couldnt open image {file_name}")
+            p.unlink()
+            return
+
         new_file_name = str(file_name).removesuffix(extensions) + '.jpg'
         img.save(new_file_name)
         p.unlink()
