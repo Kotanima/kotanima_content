@@ -1,4 +1,5 @@
 #!/bin/bash
 
 cd /home/kotanima_project/kotanima_content
-poetry run python src/downloader.py
+source $(poetry env info --path)/bin/activate
+python src/downloader.py
