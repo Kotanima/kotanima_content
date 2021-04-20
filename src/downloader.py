@@ -10,10 +10,13 @@ from image_similarity import generate_hist_cache
 from postgres import (connect_to_db, get_disliked_posts,
                       set_selected_status_by_phash)
 
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
+
 ImageFile.LOAD_TRUNCATED_IMAGES = True  # else OsError
 
 
-STATIC_FOLDER_PATH = './static'
+STATIC_FOLDER_PATH = os.getenv("STATIC_FOLDER_PATH")
 
 
 MEGABYTE = 1000000
@@ -205,7 +208,7 @@ def main():
         print("Enough files")
     else:
         print("Downloading more")
-        download_more(25)
+        download_more(1)
 
 
 if __name__ == '__main__':
