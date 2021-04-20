@@ -31,6 +31,7 @@ ImageHash = "^4.2.0"
 pytest = "^6.2.3"
 autopep8 = "^1.5.6"
 flake8 = "^3.9.1"
+rope = "^0.19.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -6,7 +6,7 @@ from dotenv import find_dotenv, load_dotenv
 
 from add_metadata import add_metadata_to_approved_posts
 from image_similarity import get_similar_imgs_by_histogram_correlation
-from postgres import (aggregate_mal_id_counts, connect_to_db,
+from postgres import (aggregate_approved_mal_id_counts, connect_to_db,
                       get_approved_anime_posts, get_approved_original_posts,
                       insert_vk_record, set_selected_status_by_phash)
 from tags_resolver import convert_tags_to_vk_string
@@ -23,7 +23,8 @@ def main():
     add_metadata_to_approved_posts()
 
     conn, _ = connect_to_db()
-    OWNER_ID = os.environ.get("VK_KOTANIMA_OWNER_ID")
+    OWNER_ID = int(os.environ.get("VK_KOTANIMA_OWNER_ID"))
+    print(OWNER_ID)
 
     last_post_date, postponed_posts_amount = get_latest_post_date_and_total_count(OWNER_ID)
 
@@ -37,8 +38,13 @@ def main():
         posts = get_approved_original_posts(conn)
         generate_vk_post(OWNER_ID, last_post_date, posts)
 
-        mal_ids = aggregate_mal_id_counts(conn)
-        mal_ids.remove((0, None))
+        mal_ids = aggregate_approved_mal_id_counts(conn)
+        try:
+            mal_ids.remove((0, None))
+        except ValueError as e:
+            # TODO add post without any approved posts
+            raise Exception('No approved posts') from e
+
         # alternate between most popular posts and random posts
         if anime_counter % 2 == 0:
             mal_id = mal_ids[anime_counter][1]

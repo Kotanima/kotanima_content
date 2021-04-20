@@ -9,7 +9,7 @@ def connect_to_db():
         user=os.environ.get("DB_USER_NAME"),
         password=os.environ.get("DB_USER_PASSWORD"),
         host="localhost",
-        port=os.environ.get("DB_PORT"),
+        port=int(os.environ.get("DB_PORT")),
         database=os.environ.get("DB_NAME")
     )
     cursor = connection.cursor()
@@ -109,7 +109,7 @@ def get_all_approved_posts(conn):
             return data
 
 
-def aggregate_mal_id_counts(conn):
+def aggregate_approved_mal_id_counts(conn):
     with conn:
         with conn.cursor() as cursor:
             query = """SELECT DISTINCT COUNT(mal_id) 

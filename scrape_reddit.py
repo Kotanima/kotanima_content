@@ -33,7 +33,7 @@ def connect_to_postgres():
         user=os.environ.get("DB_USER_NAME"),
         password=os.environ.get("DB_USER_PASSWORD"),
         host="localhost",
-        port=os.environ.get("DB_PORT"),
+        port=int(os.environ.get("DB_PORT")),
         database=os.environ.get("DB_NAME")
     )
     cursor = connection.cursor()

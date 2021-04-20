@@ -82,6 +82,6 @@ def get_latest_post_date_and_total_count(OWNER_ID: int) -> int:
     if latest_time == 0:
         tz = pytz.timezone("Europe/Moscow")
         current_date = datetime.datetime.now(tz)
-        return int(current_date.timestamp())
+        latest_time = int(current_date.timestamp())
 
     return latest_time, wall["count"]
