@@ -1,3 +1,4 @@
+import os
 from PIL import Image
 import glob
 import cv2
@@ -9,10 +10,13 @@ matplotlib.use('Agg')
 
 
 def get_hist_for_file(img_path):
-    image = cv2.imread(img_path)
-    hist = cv2.calcHist([image], [0, 1, 2], None, [8, 8, 8],
-                        [0, 256, 0, 256, 0, 256])
-    hist = cv2.normalize(hist, hist).flatten()
+    try:
+        image = cv2.imread(img_path)
+        hist = cv2.calcHist([image], [0, 1, 2], None, [8, 8, 8],
+                            [0, 256, 0, 256, 0, 256])
+        hist = cv2.normalize(hist, hist).flatten()
+    except Exception:  # broken image
+        return None
     return hist
 
 
@@ -22,7 +26,14 @@ def generate_hist_cache():
     cache_dict = {}
     for img_path in static_images:
         hist = get_hist_for_file(img_path)
-        cache_dict[img_path] = hist
+        if hist is not None:
+            cache_dict[img_path] = hist
+        else:  # broken file, get rid of it
+            cache_dict.pop(img_path, None)
+            try:
+                os.remove(img_path)
+            except Exception:
+                print(f"Couldnt delete file {img_path}")
 
     with open('cache_dict.pickle', 'wb') as f:
         pickle.dump(cache_dict, f)
@@ -55,11 +66,11 @@ def get_similar_imgs_by_histogram_correlation(target_img_path: str, similar_img_
 
 
 if __name__ == "__main__":
-    # generate_hist_cache()
+    generate_hist_cache()
 
     static_folder = './static/*.jpg'
     imgs_in_static_folder = glob.glob(static_folder)
-    first_path = str(imgs_in_static_folder[61])
+    first_path = str(imgs_in_static_folder[0])
     print(first_path)
 
     res = get_similar_imgs_by_histogram_correlation(first_path, imgs_in_static_folder)
