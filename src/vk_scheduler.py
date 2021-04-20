@@ -16,22 +16,22 @@ from vk_helper import (get_latest_post_date_and_total_count,
 load_dotenv(find_dotenv())
 
 
-STATIC_PATH = './static/'
+STATIC_PATH = os.getenv("STATIC_FOLDER_PATH")
 
 
 def main():
-    add_metadata_to_approved_posts()
+    # add_metadata_to_approved_posts()
 
     conn, _ = connect_to_db()
     OWNER_ID = int(os.environ.get("VK_KOTANIMA_OWNER_ID"))
-    print(OWNER_ID)
+    return
 
     last_post_date, postponed_posts_amount = get_latest_post_date_and_total_count(OWNER_ID)
 
     POST_AMOUNT_INCREMENT = 2  # post 1 original post and 1 anime post
     anime_counter = 0
 
-    while postponed_posts_amount + POST_AMOUNT_INCREMENT <= 56:
+    while postponed_posts_amount + POST_AMOUNT_INCREMENT <= 70:
         postponed_posts_amount += POST_AMOUNT_INCREMENT
 
         last_post_date = get_random_time_next_hour(last_post_date)
