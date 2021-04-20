@@ -130,7 +130,7 @@ def optimize_latest_file(file_name: str):
                 p.unlink()
             except FileNotFoundError:
                 pass
-            return
+            return False
 
         new_file_name = str(file_name).removesuffix(extensions) + '.jpg'
         img.save(new_file_name)
@@ -141,6 +141,7 @@ def optimize_latest_file(file_name: str):
 
     file_name = file_name or new_file_name
     optimize_image(file_name)
+    return True
 
 
 def get_static_folder_size():
@@ -167,10 +168,11 @@ def download_more(amount):
             file_path = rename_latest_file_in_folder(
                 STATIC_FOLDER_PATH, f"{sub_name}_{post_id}")
 
-        optimize_latest_file(file_path)
+        did_optimize = optimize_latest_file(file_path)
 
         # mark as selected in db
-        set_selected_status_by_phash(connection, status=False, table_name=sub_name, phash=phash)
+        if did_optimize:
+            set_selected_status_by_phash(connection, status=False, table_name=sub_name, phash=phash)
 
     connection.close()
     generate_hist_cache()  # for finding similar images in the future

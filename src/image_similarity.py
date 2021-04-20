@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
     static_folder = './static/*.jpg'
     imgs_in_static_folder = glob.glob(static_folder)
-    first_path = str(imgs_in_static_folder[0])
+    first_path = str(imgs_in_static_folder[10])
     print(first_path)
 
     res = get_similar_imgs_by_histogram_correlation(first_path, imgs_in_static_folder)
