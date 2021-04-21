@@ -174,7 +174,7 @@ def main():
         print("Enough files")
     else:
         print("Downloading more")
-        download_more(25)
+        download_more(1)
 
 
 if __name__ == '__main__':
