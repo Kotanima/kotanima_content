@@ -72,7 +72,7 @@ def download_pic_from_url(url: str, folder: str, limit: int = 1) -> bool:
 
 def optimize_image(file_path: str):
     try:
-        result = subprocess.check_output(['optimize-images', file_path])
+        result = subprocess.check_output(['optimize-images', '-rt', '-ca', '-fd', file_path])
 
         if len(result) == 0:
             return False
@@ -115,37 +115,6 @@ def get_latest_filename_in_folder(folder: str) -> Path:
     return Path(last_file)
 
 
-def optimize_latest_file(file_name: str):
-    """If input file extension isnt jpg, convert it to jpg. Optimize image.
-
-    Args:
-        file_name (str): path to image file
-    """
-    p = Path(file_name)
-    extensions = "".join(p.suffixes)
-    if extensions != '.jpg':
-        try:
-            img = Image.open(file_name).convert('RGB')
-        except OSError:
-            print(f"Couldnt open image {file_name}")
-            try:
-                p.unlink()
-            except FileNotFoundError:
-                pass
-            return False
-
-        new_file_name = str(file_name).removesuffix(extensions) + '.jpg'
-        img.save(new_file_name)
-        try:
-            p.unlink()
-        except FileNotFoundError:
-            pass
-
-    file_name = file_name or new_file_name
-    optimize_image(file_name)
-    return True
-
-
 def get_static_folder_size():
     # this is non recursive
     root_directory = Path(STATIC_FOLDER_PATH)
@@ -170,11 +139,9 @@ def download_more(amount):
             file_path = rename_latest_file_in_folder(
                 STATIC_FOLDER_PATH, f"{sub_name}_{post_id}")
 
-        did_optimize = optimize_latest_file(file_path)
-
+        optimize_image(file_path)
         # mark as selected in db
-        if did_optimize:
-            set_selected_status_by_phash(connection, status=False, table_name=sub_name, phash=phash)
+        set_selected_status_by_phash(connection, status=False, table_name=sub_name, phash=phash)
 
     connection.close()
     generate_hist_cache()  # for finding similar images in the future
