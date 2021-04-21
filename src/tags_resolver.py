@@ -22,6 +22,7 @@ JUST_USE_FRANCHISE_FUNC_NAMES = [func.__name__ for func in JUST_USE_FRANCHISE]
 MAYBE_USE_FRANCHISE_FUNC_NAMES = [func.__name__ for func in MAYBE_USE_FRANCHISE]
 
 POSTFIX = "@kotanima_arts"
+DEFAULT_STRING = "AnimeArt"
 
 
 def unslugify_text(text):
@@ -37,7 +38,7 @@ def get_tags_by_resolving_function_name(detected_obj):
     invisible_tags = []
 
     if not detected_obj:
-        return ["anime_art"], None
+        return [DEFAULT_STRING], None
 
     db_data = detected_obj[0][0]
     (anime_id, title, title_english, russian_title, franchise) = db_data
@@ -106,12 +107,14 @@ def get_tags_by_resolving_function_name(detected_obj):
         else:
             return [title], invisible_tags
 
-    return "anime_art", invisible_tags
+    return DEFAULT_STRING, invisible_tags
 
 
 def convert_tags_to_vk_string(tag_list):
     if not tag_list:
         return ""
+    # nobody uses underscore in tags, replace it ..
+    tag_list = [tag.replace("_", "") for tag in tag_list]
     tag_list = ['#' + tag + POSTFIX for tag in tag_list]
     vk_string = '\n'.join(tag_list)
     return vk_string
@@ -163,7 +166,7 @@ def get_mal_id_vis_and_invis_tags(conn, title):
 if __name__ == "__main__":
     conn, _ = connect_to_db()
 
-    title = "IA is neko so lovely!! One of my favorite [Touhou]"
+    title = "IA is neko so lovely!! One of my favorite"
 
     anime_id, vis_tags, invis_tags = get_mal_id_vis_and_invis_tags(conn, title)
     # print(anime_id)
