@@ -26,7 +26,7 @@ def generate_hist_cache():
     static_folder = './static/*.jpg'
     static_images = glob.glob(static_folder)
 
-    with h5py.File('cache_dict.h5', 'w', libver='latest') as f:
+    with h5py.File('cache_dict.h5', 'a', libver='latest') as f:
         for img_path in static_images:
             hist = get_hist_for_file(img_path)
             if hist is not None:
@@ -41,7 +41,7 @@ def generate_hist_cache():
                     print(f"Couldnt delete file {img_path}")
 
 
-def get_similar_imgs_by_histogram_correlation(first_img_name: str, img_names: list, CORRELATION_LIMIT=0.7, search_amount=2):
+def get_similar_imgs_by_histogram_correlation(first_img_name: str, img_names: list, CORRELATION_LIMIT=0.85, search_amount=2):
     with h5py.File("cache_dict.h5", 'r') as h5f:
         h5_arr = h5f['dict']['static']
         try:

@@ -37,7 +37,10 @@ def main():
 
         last_post_date = get_random_time_next_hour(last_post_date)
         posts = get_approved_original_posts(conn)
-        generate_vk_post(OWNER_ID, last_post_date, posts)
+        if posts:
+            generate_vk_post(OWNER_ID, last_post_date, posts)
+        else:
+            print("No approved original posts")
 
         mal_ids = aggregate_approved_mal_id_counts(conn)
         try:
@@ -49,9 +52,18 @@ def main():
 
         # alternate between most popular posts and random posts
         if anime_counter % 2 == 0:
-            mal_id = mal_ids[anime_counter][1]
+            try:
+                mal_id = mal_ids[anime_counter][1]
+            except IndexError:
+                anime_counter = 0
+                print("Anime counter overflow")
+                continue
         else:
-            mal_id = random.choice(mal_ids)[1]
+            try:
+                mal_id = random.choice(mal_ids)[1]
+            except IndexError:
+                print("No approved anime posts left")
+                continue
 
         last_post_date = get_random_time_next_hour(last_post_date)
         posts = get_approved_anime_posts(conn, mal_id=mal_id)
@@ -81,7 +93,7 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
     except IndexError:
         return  # or not ?
 
-    similar_img_names = get_similar_imgs_by_histogram_correlation(first_img_name, img_names, CORRELATION_LIMIT=0.9, search_amount=2)
+    similar_img_names = get_similar_imgs_by_histogram_correlation(first_img_name, img_names, CORRELATION_LIMIT=0.85, search_amount=2)
 
     res_img_paths = []
     for img in [first_img_name] + similar_img_names:
