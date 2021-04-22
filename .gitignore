@@ -2,7 +2,7 @@
 __pycache__/
 static/
 FINAL.txt
-cache_dict.pickle
+cache_dict.h5
 .env
 Backups/
 scrape_download/

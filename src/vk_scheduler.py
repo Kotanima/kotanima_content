@@ -13,6 +13,7 @@ from tags_resolver import convert_tags_to_vk_string
 from vk_helper import (get_latest_post_date_and_total_count,
                        get_random_time_next_hour, post_photos_to_vk)
 
+from image_similarity import generate_hist_cache
 load_dotenv(find_dotenv())
 
 
@@ -21,16 +22,18 @@ STATIC_PATH = os.getenv("STATIC_FOLDER_PATH")
 
 def main():
     add_metadata_to_approved_posts()
+    generate_hist_cache()  # for finding similar images in the future
 
     conn, _ = connect_to_db()
     OWNER_ID = int(os.environ.get("VK_KOTANIMA_OWNER_ID"))
+    OWNER_ID = int(os.environ.get("VK_KROTKADZIMA_OWNER_ID"))
 
     last_post_date, postponed_posts_amount = get_latest_post_date_and_total_count(OWNER_ID)
 
     POST_AMOUNT_INCREMENT = 2  # post 1 original post and 1 anime post
     anime_counter = 0
 
-    while postponed_posts_amount + POST_AMOUNT_INCREMENT <= 70:
+    while postponed_posts_amount + POST_AMOUNT_INCREMENT <= 20:
         postponed_posts_amount += POST_AMOUNT_INCREMENT
 
         last_post_date = get_random_time_next_hour(last_post_date)
@@ -42,7 +45,8 @@ def main():
             mal_ids.remove((0, None))
         except ValueError as e:
             # TODO add post without any approved posts
-            raise Exception('No approved posts') from e
+            # raise Exception('No approved posts') from e
+            pass
 
         # alternate between most popular posts and random posts
         if anime_counter % 2 == 0:
@@ -63,26 +67,29 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
     Add tags to them, post to vk
     """
     post_data_img_path_dict = {}
-    img_paths = []
+    img_names = []
     phash_list = []  # so we can add these to vk_table later
     sub_name_list = []
 
     for post in reddit_posts:
         (post_id, sub_name, source_link, visible_tags, invisible_tags, _) = post
-        img_path = pathlib.Path(STATIC_PATH, f"{sub_name}_{post_id}.jpg")
-        img_path = str(img_path)
-        img_paths.append(img_path)
-        post_data_img_path_dict[img_path] = post
+        img_name = f"{sub_name}_{post_id}.jpg"
+        img_names.append(img_name)
+        post_data_img_path_dict[img_name] = post
 
     try:
-        first_img_path = img_paths[0]
+        first_img_name = img_names[0]
     except IndexError:
         return  # or not ?
 
-    similar_img_paths = get_similar_imgs_by_histogram_correlation(first_img_path, img_paths, CORRELATION_LIMIT=0.9, search_amount=2)
-    res_img_paths = [first_img_path] + similar_img_paths
+    similar_img_names = get_similar_imgs_by_histogram_correlation(first_img_name, img_names, CORRELATION_LIMIT=0.7, search_amount=2)
 
-    first_obj = post_data_img_path_dict[first_img_path]
+    res_img_paths = []
+    for img in [first_img_name] + similar_img_names:
+        img_path = pathlib.Path(STATIC_PATH, img)
+        res_img_paths.append(str(img_path))
+
+    first_obj = post_data_img_path_dict[first_img_name]
     (_, sub_name, source_link, visible_tags, invisible_tags, phash) = first_obj
     phash_list.append(phash)
     sub_name_list.append(sub_name)
@@ -93,7 +100,7 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
 
     total_hidden_tag_list = []  # keep track of already added hidden tags, so we dont add duplicates
 
-    if len(similar_img_paths) == 0:  # only 1 picture (no similar ones)
+    if len(similar_img_names) == 0:  # only 1 picture (no similar ones)
         display_text = convert_tags_to_vk_string(visible_tags)
         hidden_text = convert_tags_to_vk_string(invisible_tags)
 
@@ -124,12 +131,15 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
     VK_MAX_TAGS_LIMIT = 10
 
     hidden_text_list = [hidden_text]
-    for img_path in similar_img_paths:
-        post = post_data_img_path_dict[img_path]
+    for img_name in similar_img_names:
+        post = post_data_img_path_dict[img_name]
         (_, sub_name, source_link, visible_tags, invisible_tags, phash) = post
         phash_list.append(phash)
         sub_name_list.append(sub_name)
-        hidden_text = source_link + '\n'
+        if source_link:
+            hidden_text = source_link + '\n'
+        else:
+            hidden_text = ""
         # get rid of tags that were already used
         invisible_tags = [tag for tag in invisible_tags if tag not in total_hidden_tag_list]
         # add unique ones

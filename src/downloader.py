@@ -30,6 +30,7 @@ def get_reddit_post_data(cursor, limit: int):
     query = f"""SELECT post_id, author, created_utc, title, url, phash, sub_name FROM my_app_redditpost 
               WHERE sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape')
               AND phash NOT IN (SELECT phash FROM my_app_vkpost)
+              AND phash NOT IN (SELECT phash FROM my_app_redditpost where selected=false)
               AND wrong_format=false
               AND selected is NULL
               ORDER BY RANDOM()
@@ -144,7 +145,6 @@ def download_more(amount):
         set_selected_status_by_phash(connection, status=False, table_name=sub_name, phash=phash)
 
     connection.close()
-    generate_hist_cache()  # for finding similar images in the future
 
 
 def delete_disliked_posts():
@@ -174,7 +174,7 @@ def main():
         print("Enough files")
     else:
         print("Downloading more")
-        download_more(1)
+        download_more(25)
 
 
 if __name__ == '__main__':
