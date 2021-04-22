@@ -26,14 +26,13 @@ def main():
 
     conn, _ = connect_to_db()
     OWNER_ID = int(os.environ.get("VK_KOTANIMA_OWNER_ID"))
-    OWNER_ID = int(os.environ.get("VK_KROTKADZIMA_OWNER_ID"))
 
     last_post_date, postponed_posts_amount = get_latest_post_date_and_total_count(OWNER_ID)
 
     POST_AMOUNT_INCREMENT = 2  # post 1 original post and 1 anime post
     anime_counter = 0
 
-    while postponed_posts_amount + POST_AMOUNT_INCREMENT <= 20:
+    while postponed_posts_amount + POST_AMOUNT_INCREMENT <= 70:
         postponed_posts_amount += POST_AMOUNT_INCREMENT
 
         last_post_date = get_random_time_next_hour(last_post_date)
@@ -82,7 +81,7 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
     except IndexError:
         return  # or not ?
 
-    similar_img_names = get_similar_imgs_by_histogram_correlation(first_img_name, img_names, CORRELATION_LIMIT=0.7, search_amount=2)
+    similar_img_names = get_similar_imgs_by_histogram_correlation(first_img_name, img_names, CORRELATION_LIMIT=0.9, search_amount=2)
 
     res_img_paths = []
     for img in [first_img_name] + similar_img_names:
