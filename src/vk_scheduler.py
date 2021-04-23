@@ -106,8 +106,10 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
     sub_name_list.append(sub_name)
 
     total_tag_count = 0  # we need to make sure there is less than 10 tags in the post
-    total_tag_count += len(visible_tags)
-    total_tag_count += len(invisible_tags)
+    if visible_tags:
+        total_tag_count += len(visible_tags)
+    if invisible_tags:
+        total_tag_count += len(invisible_tags)
 
     total_hidden_tag_list = []  # keep track of already added hidden tags, so we dont add duplicates
 
