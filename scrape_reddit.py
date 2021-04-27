@@ -6,7 +6,7 @@ import warnings
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Tuple
+from typing import Any, List, Tuple, Optional
 
 import fire
 import imagehash
@@ -34,7 +34,7 @@ def connect_to_postgres():
         password=os.environ.get("DB_USER_PASSWORD"),
         host="localhost",
         port=int(os.environ.get("DB_PORT")),
-        database=os.environ.get("DB_NAME")
+        database=os.environ.get("DB_NAME"),
     )
     cursor = connection.cursor()
     return connection, cursor
@@ -77,13 +77,13 @@ def rename_latest_file_in_folder(folder: str, new_filename: str):
     return new_path
 
 
-def get_latest_filename_in_folder(folder: str) -> Path:
+def get_latest_filename_in_folder(folder: str) -> Optional[Path]:
     download_folder = str(Path(f"./{folder}/*").absolute())
     try:
         last_file = max(glob.glob(download_folder), key=os.path.getctime)
     except ValueError:
         print("Couldnt find a file")
-        return
+        return None
 
     return Path(last_file)
 
@@ -104,14 +104,24 @@ def download_pic_from_url(url: str, folder: str, limit: int = 1) -> bool:
         bool: True if picture loaded
     """
     try:
-        result = subprocess.check_output(['gallery-dl',
-                                          '--dest', f"./{folder}/",
-                                          '--http-timeout', '7',
-                                          '--sleep', '1',
-                                          '--range', f'{limit}',
-                                          '--filter', "extension in ('jpg', 'png', 'jpeg', 'PNG', 'JPEG')",
-                                          '--config', '../gallery-dl.conf',
-                                          f"{str(url)}"])
+        result = subprocess.check_output(
+            [
+                "gallery-dl",
+                "--dest",
+                f"./{folder}/",
+                "--http-timeout",
+                "7",
+                "--sleep",
+                "1",
+                "--range",
+                f"{limit}",
+                "--filter",
+                "extension in ('jpg', 'png', 'jpeg', 'PNG', 'JPEG')",
+                "--config",
+                "../gallery-dl.conf",
+                f"{str(url)}",
+            ]
+        )
 
         if len(result) == 0:
             return False
@@ -122,19 +132,34 @@ def download_pic_from_url(url: str, folder: str, limit: int = 1) -> bool:
     return True
 
 
-def insert_pic_record(cursor,
-                      sub_name: str,
-                      post_id: str,
-                      author: str,
-                      title: str,
-                      url: str,
-                      created_utc: str,
-                      phash: str,
-                      wrong_format: bool,
-                      selected: bool):
-    query = """INSERT INTO my_app_redditpost (sub_name, post_id, author, title, url, created_utc, phash, wrong_format, selected) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
-    cursor.execute(query, (sub_name, post_id, author, title, url,
-                           created_utc, phash, wrong_format, selected))
+def insert_pic_record(
+    cursor,
+    sub_name: str,
+    post_id: str,
+    author: str,
+    title: str,
+    url: str,
+    created_utc: str,
+    phash: str,
+    wrong_format: bool,
+    selected: Optional[bool],
+):
+    query = """INSERT INTO my_app_redditpost (sub_name, post_id, author, title, url, created_utc, phash, wrong_format, selected)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+    cursor.execute(
+        query,
+        (
+            sub_name,
+            post_id,
+            author,
+            title,
+            url,
+            created_utc,
+            phash,
+            wrong_format,
+            selected,
+        ),
+    )
 
 
 def does_post_id_exist(cursor, table_name: str, post_id: str) -> bool:
@@ -152,31 +177,34 @@ def does_post_id_exist(cursor, table_name: str, post_id: str) -> bool:
 
 
 def get_last_post_time(cursor, table_name):
-    query = """SELECT created_utc FROM my_app_redditpost WHERE sub_name=%s ORDER BY created_utc DESC LIMIT 1"""
+    query = """SELECT created_utc FROM my_app_redditpost WHERE sub_name=%s 
+            ORDER BY created_utc DESC LIMIT 1"""
 
     cursor.execute(query, (table_name,))
     data = cursor.fetchall()
     return data
 
 
-class Scraper():
-    download_folder = 'scrape_download'
+class Scraper:
+    download_folder = "scrape_download"
     if not os.path.exists(download_folder):
         os.makedirs(download_folder)
 
-    def praw_scrape(self, subreddit_name, PRAW_MODE=PostSearchType.NEW, amount=100):
-        start_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    def praw_scrape(
+        self, subreddit_name: str, PRAW_MODE=PostSearchType.NEW, amount: int = 100
+    ):
+        start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         conn, cur = connect_to_postgres()
-        r = praw.Reddit(client_id=os.environ.get("REDDIT_CLIENT_ID"),
-                        client_secret=os.environ.get("REDDIT_CLIENT_SECRET"),
-                        user_agent=os.environ.get("REDDIT_USER_AGENT"),
-                        username=os.environ.get("REDDIT_USERNAME"),
-                        password=os.environ.get("REDDIT_PASSWORD"))
+        r = praw.Reddit(
+            client_id=os.environ.get("REDDIT_CLIENT_ID"),
+            client_secret=os.environ.get("REDDIT_CLIENT_SECRET"),
+            user_agent=os.environ.get("REDDIT_USER_AGENT"),
+            username=os.environ.get("REDDIT_USERNAME"),
+            password=os.environ.get("REDDIT_PASSWORD"),
+        )
 
         # delete files in downloads folder
         clear_folder(self.download_folder)
-
-        filtered_submissions = []
 
         iter = r.subreddit(subreddit_name).new(limit=amount)
 
@@ -184,8 +212,8 @@ class Scraper():
             iter = r.subreddit(subreddit_name).hot(limit=amount)
         elif PRAW_MODE == PostSearchType.TOP:
             iter = r.subreddit(subreddit_name).top(limit=amount)
-        elif PRAW_MODE == PostSearchType.NEW:
-            iter = r.subreddit(subreddit_name).new(limit=amount)
+
+        filtered_submissions: List[Tuple[Any, bool, Optional[str]]] = []
 
         with cur:
             for subm in iter:
@@ -194,16 +222,18 @@ class Scraper():
                     # print(f"Subm id already exists: {subm.id}")
                     continue
 
-                if 'minus.com' in subm.url:
+                if "minus.com" in subm.url:
                     filtered_submissions.append((subm, True, None))
                     continue
 
                 did_load = download_pic_from_url(
-                    url=subm.url, folder=self.download_folder, limit=1)
+                    url=subm.url, folder=self.download_folder, limit=1
+                )
                 if did_load:
                     new_name = get_filename_from_subm(subm)
                     new_path = rename_latest_file_in_folder(
-                        self.download_folder, new_name)
+                        self.download_folder, new_name
+                    )
                     is_wrong_format, phash = check_validity_and_phash(new_path)
                     filtered_submissions.append((subm, is_wrong_format, phash))
                 else:
@@ -213,15 +243,17 @@ class Scraper():
 
         # add them to database
         inserted = add_filtered_submissions_to_db(
-            conn, filtered_submissions, subreddit_name)
+            conn, filtered_submissions, subreddit_name
+        )
 
-        end_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         print(
-            f"[{start_time}] {subreddit_name}: inserted {inserted} posts [{end_time}]")
+            f"[{start_time}] {subreddit_name}: inserted {inserted} posts [{end_time}]"
+        )
         close_postgres_connection(conn, cur)
 
-    def psaw_scrape(self, subreddit_name, amount=100):
+    def psaw_scrape(self, subreddit_name: str, amount: int = 100):
         """
         0) Get latest created_utc from db or use the one provided by const
         1) Download pics
@@ -232,7 +264,7 @@ class Scraper():
         Args:
             amount (int, optional): Pushshift query amount. Defaults to 100.
         """
-        start_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         conn, cur = connect_to_postgres()
 
@@ -244,23 +276,25 @@ class Scraper():
         # print(f"Starting download from: {since_date}")
 
         submissions = get_submissions(subreddit_name, since_date, amount)
-        # try to download pics
 
-        filtered_submissions = []
+        # try to download pics
+        filtered_submissions: List[Tuple[Any, bool, Optional[str]]] = []
         with cur:
             for subm in submissions:
                 if does_post_id_exist(cur, subreddit_name, subm.id):
                     continue
-                if 'minus.com' in subm.url:
+                if "minus.com" in subm.url:
                     filtered_submissions.append((subm, True, None))
                     continue
 
                 did_load = download_pic_from_url(
-                    url=subm.url, folder=self.download_folder, limit=1)
+                    url=subm.url, folder=self.download_folder, limit=1
+                )
                 if did_load:
                     new_name = get_filename_from_subm(subm)
                     new_path = rename_latest_file_in_folder(
-                        self.download_folder, new_name)
+                        self.download_folder, new_name
+                    )
                     is_wrong_format, phash = check_validity_and_phash(new_path)
                     filtered_submissions.append((subm, is_wrong_format, phash))
                 else:
@@ -270,13 +304,15 @@ class Scraper():
 
         # add them to database
         inserted = add_filtered_submissions_to_db(
-            conn, filtered_submissions, subreddit_name)
+            conn, filtered_submissions, subreddit_name
+        )
 
         close_postgres_connection(conn, cur)
 
-        end_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(
-            f"[{start_time}] {subreddit_name}: inserted {inserted} posts [{end_time}]")
+            f"[{start_time}] {subreddit_name}: inserted {inserted} posts [{end_time}]"
+        )
 
         if inserted == 0:
             return
@@ -291,7 +327,7 @@ def get_submissions(sub, sdate, amount):
         after=sdate,
         before=int(time.time()),
         subreddit=sub,
-        filter=["title", "url", "author", "id", 'created_utc'],
+        filter=["title", "url", "author", "id", "created_utc"],
         limit=amount,
     )
     return list(gen)
@@ -299,27 +335,39 @@ def get_submissions(sub, sdate, amount):
 
 @postgres_access
 def get_latest_created_utc_time_from_db(_, cursor, subreddit_name):
-    # minus 30 for a small offset because reddit records may overlap
+    # TIME_OFFSET because reddit records may overlap
+    TIME_OFFSET = 30
     with cursor:
         # this returns a tuple inside a list ...
         try:
             last_time = get_last_post_time(cursor, subreddit_name)
-            since_date = str(int(last_time[0][0]) - 30)  # unpack this shit...
+            since_date = str(int(last_time[0][0]) - TIME_OFFSET)
         except IndexError:  # if table is empty
-            since_date = 111111
+            since_date = 111111  # random small number
 
     return since_date
 
 
-def add_filtered_submissions_to_db(connection, filtered_submissions, subreddit_name: str):
+def add_filtered_submissions_to_db(
+    connection, filtered_submissions: list, subreddit_name: str
+):
     inserted = 0
     for subm, wrong_format, img_hash in filtered_submissions:
         with connection:
             with connection.cursor() as cur:
                 try:
-                    # print(subm.url)
-                    insert_pic_record(cursor=cur, sub_name=subreddit_name, post_id=str(subm.id), author=str(subm.author), title=str(subm.title),
-                                      url=str(subm.url), created_utc=str(int(subm.created_utc)), phash=img_hash, wrong_format=wrong_format, selected=None)
+                    insert_pic_record(
+                        cursor=cur,
+                        sub_name=subreddit_name,
+                        post_id=str(subm.id),
+                        author=str(subm.author),
+                        title=str(subm.title),
+                        url=str(subm.url),
+                        created_utc=str(int(subm.created_utc)),
+                        phash=img_hash,
+                        wrong_format=wrong_format,
+                        selected=None,
+                    )
 
                     inserted += 1
                 except psql_err.UniqueViolation:
@@ -345,10 +393,10 @@ def clear_folder(folder_path):
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
         except Exception as e:
-            print('Failed to delete %s. Reason: %s' % (file_path, e))
+            print("Failed to delete %s. Reason: %s" % (file_path, e))
 
 
-def check_validity_and_phash(file_path: Path) -> Tuple[bool, str]:
+def check_validity_and_phash(file_path: Path) -> Tuple[bool, Optional[str]]:
     """Go through reddit submission objects and check if the image is actually loaded.
     Then check if it open with PIL.Image() and has correct dimensions etc
     If everything is ok, return is_wrong_format=False and phash value of image.
@@ -356,7 +404,7 @@ def check_validity_and_phash(file_path: Path) -> Tuple[bool, str]:
     Returns:
         [type]: is_wrong_format, phash
     """
-    warnings.simplefilter('error', Image.DecompressionBombWarning)
+    warnings.simplefilter("error", Image.DecompressionBombWarning)
 
     try:  # if it DID load the picture, try to open it with PIL
         with Image.open(file_path) as im:

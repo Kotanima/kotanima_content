@@ -7,6 +7,7 @@ import pytz
 import requests
 import vk_api
 from dotenv import find_dotenv, load_dotenv
+from typing import Any
 
 load_dotenv(find_dotenv())
 
@@ -20,15 +21,19 @@ load_dotenv(find_dotenv())
 
 
 def vk_auth():
-    vk_session = vk_api.VkApi(
-        token=os.environ.get("VK_ACCESS_TOKEN") 
-    )
+    vk_session = vk_api.VkApi(token=os.environ.get("VK_ACCESS_TOKEN"))
     vk = vk_session.get_api()
     return vk
 
 
-def post_photos_to_vk(OWNER_ID: int, image_list: list, text: str, source_link: str,
-                      hidden_text_list: list, delay: int):
+def post_photos_to_vk(
+    OWNER_ID: int,
+    image_list: list,
+    text: str,
+    source_link: str,
+    hidden_text_list: list,
+    delay: int,
+):
     vk = vk_auth()
     destination = vk.photos.getWallUploadServer()
     photo_responses = []
@@ -39,11 +44,12 @@ def post_photos_to_vk(OWNER_ID: int, image_list: list, text: str, source_link: s
         )
         result = json.loads(meta.text)
         photo = vk.photos.saveWallPhoto(
-            photo=result["photo"], hash=result["hash"],
-            server=result["server"], caption=hidden_text_list[counter]
+            photo=result["photo"],
+            hash=result["hash"],
+            server=result["server"],
+            caption=hidden_text_list[counter],
         )
-        photo_responses.append(
-            f"photo{photo[0]['owner_id']}_{photo[0]['id']}")
+        photo_responses.append(f"photo{photo[0]['owner_id']}_{photo[0]['id']}")
 
         # unselect from db by hash
 
@@ -65,7 +71,7 @@ def get_random_time_next_hour(date_timestamp: int):
     return int(date.timestamp())
 
 
-def get_latest_post_date_and_total_count(OWNER_ID: int) -> int:
+def get_latest_post_date_and_total_post_count(OWNER_ID: int) -> tuple[int, Any]:
     vk = vk_auth()
     tools = vk_api.VkTools(vk)
 
@@ -75,8 +81,8 @@ def get_latest_post_date_and_total_count(OWNER_ID: int) -> int:
 
     latest_time = 0
     for item in wall["items"]:
-        if item['date'] > latest_time:
-            latest_time = item['date']
+        if item["date"] > latest_time:
+            latest_time = item["date"]
 
     print(f"{latest_time=}")
     if latest_time == 0:

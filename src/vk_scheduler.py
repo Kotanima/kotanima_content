@@ -1,19 +1,30 @@
 import os
 import pathlib
 import random
+from itertools import cycle
 
 from dotenv import find_dotenv, load_dotenv
 
 from add_metadata import add_metadata_to_approved_posts
-from image_similarity import get_similar_imgs_by_histogram_correlation
-from postgres import (aggregate_approved_mal_id_counts, connect_to_db,
-                      get_approved_anime_posts, get_approved_original_posts,
-                      insert_vk_record, set_selected_status_by_phash)
+from image_similarity import (
+    generate_hist_cache,
+    get_similar_imgs_by_histogram_correlation,
+)
+from postgres import (
+    aggregate_approved_mal_id_counts,
+    connect_to_db,
+    get_approved_anime_posts,
+    get_approved_original_posts,
+    insert_vk_record,
+    set_selected_status_by_phash,
+)
 from tags_resolver import convert_tags_to_vk_string
-from vk_helper import (get_latest_post_date_and_total_count,
-                       get_random_time_next_hour, post_photos_to_vk)
+from vk_helper import (
+    get_latest_post_date_and_total_post_count,
+    get_random_time_next_hour,
+    post_photos_to_vk,
+)
 
-from image_similarity import generate_hist_cache
 load_dotenv(find_dotenv())
 
 
@@ -27,7 +38,16 @@ def main():
     conn, _ = connect_to_db()
     OWNER_ID = int(os.environ.get("VK_KOTANIMA_OWNER_ID"))
 
-    last_post_date, postponed_posts_amount = get_latest_post_date_and_total_count(OWNER_ID)
+    last_post_date, postponed_posts_amount = get_latest_post_date_and_total_post_count(
+        OWNER_ID
+    )
+
+    mal_ids = aggregate_approved_mal_id_counts(conn)
+    try:
+        mal_ids.remove((0, None))
+    except ValueError:
+        pass
+    mal_ids_cycler = cycle(mal_ids)  # cycle through anime postss
 
     POST_AMOUNT_INCREMENT = 2  # post 1 original post and 1 anime post
     anime_counter = 0
@@ -42,22 +62,9 @@ def main():
         else:
             print("No approved original posts")
 
-        mal_ids = aggregate_approved_mal_id_counts(conn)
-        try:
-            mal_ids.remove((0, None))
-        except ValueError as e:
-            # TODO add post without any approved posts
-            # raise Exception('No approved posts') from e
-            pass
-
         # alternate between most popular posts and random posts
         if anime_counter % 2 == 0:
-            try:
-                mal_id = mal_ids[anime_counter][1]
-            except IndexError:
-                anime_counter = 0
-                print("Anime counter overflow")
-                continue
+            mal_id = next(mal_ids_cycler)
         else:
             try:
                 mal_id = random.choice(mal_ids)[1]
@@ -93,7 +100,9 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
     except IndexError:
         return  # or not ?
 
-    similar_img_names = get_similar_imgs_by_histogram_correlation(first_img_name, img_names, CORRELATION_LIMIT=0.85, search_amount=2)
+    similar_img_names = get_similar_imgs_by_histogram_correlation(
+        first_img_name, img_names, CORRELATION_LIMIT=0.85, search_amount=2
+    )
 
     res_img_paths = []
     for img in [first_img_name] + similar_img_names:
@@ -111,7 +120,9 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
     if invisible_tags:
         total_tag_count += len(invisible_tags)
 
-    total_hidden_tag_list = []  # keep track of already added hidden tags, so we dont add duplicates
+    total_hidden_tag_list = (
+        []
+    )  # keep track of already added hidden tags, so we dont add duplicates
 
     if len(similar_img_names) == 0:  # only 1 picture (no similar ones)
         display_text = convert_tags_to_vk_string(visible_tags)
@@ -150,11 +161,13 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
         phash_list.append(phash)
         sub_name_list.append(sub_name)
         if source_link:
-            hidden_text = source_link + '\n'
+            hidden_text = source_link + "\n"
         else:
             hidden_text = ""
         # get rid of tags that were already used
-        invisible_tags = [tag for tag in invisible_tags if tag not in total_hidden_tag_list]
+        invisible_tags = [
+            tag for tag in invisible_tags if tag not in total_hidden_tag_list
+        ]
         # add unique ones
         total_hidden_tag_list += invisible_tags
         # check VK tags amount limit
@@ -164,9 +177,16 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
             hidden_text_list.append(hidden_text)
 
     try:
-        post_photos_to_vk(OWNER_ID, res_img_paths, display_text, post_source_link, hidden_text_list, last_post_date)
+        post_photos_to_vk(
+            OWNER_ID,
+            res_img_paths,
+            display_text,
+            post_source_link,
+            hidden_text_list,
+            last_post_date,
+        )
     except Exception as e:
-        raise Exception('Failed to post to vk') from e
+        raise Exception("Failed to post to vk") from e
 
     # cleanup
 
@@ -187,5 +207,5 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
             pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

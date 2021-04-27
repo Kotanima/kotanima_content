@@ -3,14 +3,15 @@ import os
 import pathlib
 import subprocess
 from pathlib import Path
+from typing import Optional
 
+from dotenv import find_dotenv, load_dotenv
 from PIL import Image, ImageFile
 
 from image_similarity import generate_hist_cache
-from postgres import (connect_to_db, get_disliked_posts,
-                      set_selected_status_by_phash)
+from postgres import connect_to_db, get_disliked_posts, set_selected_status_by_phash
 
-from dotenv import load_dotenv, find_dotenv
+
 load_dotenv(find_dotenv())
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True  # else OsError
@@ -53,14 +54,24 @@ def download_pic_from_url(url: str, folder: str, limit: int = 1) -> bool:
         bool: True if picture loaded
     """
     try:
-        result = subprocess.check_output(['gallery-dl',
-                                          '--dest', folder + "/",
-                                          '--http-timeout', '7',
-                                          '--sleep', '1',
-                                          '--range', f'{limit}',
-                                          '--filter', "extension in ('jpg', 'png', 'jpeg', 'PNG', 'JPEG')",
-                                          '--config', '../gallery-dl.conf',
-                                          f"{str(url)}"])
+        result = subprocess.check_output(
+            [
+                "gallery-dl",
+                "--dest",
+                folder + "/",
+                "--http-timeout",
+                "7",
+                "--sleep",
+                "1",
+                "--range",
+                f"{limit}",
+                "--filter",
+                "extension in ('jpg', 'png', 'jpeg', 'PNG', 'JPEG')",
+                "--config",
+                "../gallery-dl.conf",
+                f"{str(url)}",
+            ]
+        )
 
         if len(result) == 0:
             return False
@@ -73,7 +84,9 @@ def download_pic_from_url(url: str, folder: str, limit: int = 1) -> bool:
 
 def optimize_image(file_path: str):
     try:
-        result = subprocess.check_output(['optimize-images', '-rt', '-ca', '-fd', file_path])
+        result = subprocess.check_output(
+            ["optimize-images", "-rt", "-ca", "-fd", file_path]
+        )
 
         if len(result) == 0:
             return False
@@ -105,13 +118,13 @@ def rename_latest_file_in_folder(folder: str, new_filename: str):
     return new_path
 
 
-def get_latest_filename_in_folder(folder: str) -> Path:
+def get_latest_filename_in_folder(folder: str) -> Optional[Path]:
     download_folder = str(Path(folder + "/*").absolute())
     try:
         last_file = max(glob.glob(download_folder), key=os.path.getctime)
     except ValueError:
         print("Couldnt find a file")
-        return
+        return None
 
     return Path(last_file)
 
@@ -119,7 +132,7 @@ def get_latest_filename_in_folder(folder: str) -> Path:
 def get_static_folder_size():
     # this is non recursive
     root_directory = Path(STATIC_FOLDER_PATH)
-    return sum(f.stat().st_size for f in root_directory.glob('**/*') if f.is_file())
+    return sum(f.stat().st_size for f in root_directory.glob("**/*") if f.is_file())
 
 
 def download_more(amount):
@@ -138,11 +151,14 @@ def download_more(amount):
             continue
         else:
             file_path = rename_latest_file_in_folder(
-                STATIC_FOLDER_PATH, f"{sub_name}_{post_id}")
+                STATIC_FOLDER_PATH, f"{sub_name}_{post_id}"
+            )
 
         optimize_image(file_path)
         # mark as selected in db
-        set_selected_status_by_phash(connection, status=False, table_name=sub_name, phash=phash)
+        set_selected_status_by_phash(
+            connection, status=False, table_name=sub_name, phash=phash
+        )
 
     connection.close()
 
@@ -177,5 +193,5 @@ def main():
         download_more(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

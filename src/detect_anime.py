@@ -8,9 +8,25 @@ try:
 except ModuleNotFoundError:
     from src.postgres import connect_to_db
 
+from dataclasses import dataclass, field
+from typing import Optional
 
-def get_text_inside_brackets(text):
-    # returns text inside brackets
+AnimeInfo = tuple[int, str, str, str, str]
+
+
+@dataclass
+class AnimeDetection:
+    anime_info: AnimeInfo
+    func_name: str
+    is_from_anime: bool
+    column: Optional[str] = None
+
+    def __post_init__(self):
+        self.anime_id = self.anime_info[0]
+
+
+def get_text_inside_brackets(text: str) -> list[str]:
+    # returns all text inside (multiple) brackets
     # example: My fav anime picture [Sponge Bob Square Pants] -> returns only: Sponge Bob Square Pants
     square_brackets_pattern = r"\[(.*?)\]"
     round_brackets_pattern = r"\((.*?)\)"
@@ -20,16 +36,16 @@ def get_text_inside_brackets(text):
         res = re.findall(pattern, text)
         result_list += res
 
+    # attempt to fix missing brackets
     if not result_list:
-        # attempt to fix missing bracket
-        if '[' in text and ']' not in text:
-            text += ']'
+        if "[" in text and "]" not in text:
+            text += "]"
             res = re.findall(square_brackets_pattern, text)
             result_list += res
             return result_list
 
-        elif '(' in text and ')' not in text:
-            text += ')'
+        elif "(" in text and ")" not in text:
+            text += ")"
             res = re.findall(round_brackets_pattern, text)
             result_list += res
             return result_list
@@ -37,7 +53,7 @@ def get_text_inside_brackets(text):
     return result_list
 
 
-def is_valid_url(url):
+def is_valid_url(url: str):
     regex = re.compile(
         r"^(?:http|ftp)s?://"  # http:// or https://
         r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|"
@@ -55,7 +71,9 @@ def get_number_count_from_string(input_string: str):
     return sum(c.isdigit() for c in input_string)
 
 
-def text_is_equal_to_column(conn, table_name, column_name, input_text):
+def text_is_equal_to_column(
+    conn, table_name: str, column_name: str, input_text: str
+) -> AnimeInfo:
     with conn:
         with conn.cursor() as cursor:
             query = sql.SQL(
@@ -70,7 +88,9 @@ def text_is_equal_to_column(conn, table_name, column_name, input_text):
             return data
 
 
-def slug_text_is_equal_to_slug_column(conn, table_name: str, column_name: str, input_text: str):
+def slug_text_is_equal_to_slug_column(
+    conn, table_name: str, column_name: str, input_text: str
+) -> AnimeInfo:
     with conn:
         with conn.cursor() as cursor:
             query = sql.SQL(
@@ -86,7 +106,7 @@ def slug_text_is_equal_to_slug_column(conn, table_name: str, column_name: str, i
             return data
 
 
-def text_is_in_synonyms_array(conn, table_name: str, input_text: str):
+def text_is_in_synonyms_array(conn, table_name: str, input_text: str) -> AnimeInfo:
     with conn:
         with conn.cursor() as cursor:
             query = sql.SQL(
@@ -101,7 +121,9 @@ def text_is_in_synonyms_array(conn, table_name: str, input_text: str):
             return data
 
 
-def text_is_in_slugified_synonyms_array(conn, table_name: str, input_text: str):
+def text_is_in_slugified_synonyms_array(
+    conn, table_name: str, input_text: str
+) -> AnimeInfo:
     with conn:
         with conn.cursor() as cursor:
             query = sql.SQL(
@@ -116,7 +138,9 @@ def text_is_in_slugified_synonyms_array(conn, table_name: str, input_text: str):
             return data
 
 
-def text_is_substring_of_franchise(conn, table_name: str, input_text: str):
+def text_is_substring_of_franchise(
+    conn, table_name: str, input_text: str
+) -> Optional[AnimeInfo]:
     """Example: input is 'sword_art' which is substring of franchise 'sword_art_online'
 
     Returns:
@@ -140,7 +164,9 @@ def text_is_substring_of_franchise(conn, table_name: str, input_text: str):
                 return None
 
 
-def text_without_spaces_is_equal_to_franchise_column(conn, table_name: str, input_text: str):
+def text_without_spaces_is_equal_to_franchise_column(
+    conn, table_name: str, input_text: str
+) -> Optional[AnimeInfo]:
     input_text = slugify(input_text)
     input_text = input_text.replace("-", "")
     with conn:
@@ -159,7 +185,9 @@ def text_without_spaces_is_equal_to_franchise_column(conn, table_name: str, inpu
                 return None
 
 
-def text_without_spaces_is_equal_to_title(conn, table_name: str, input_text: str):
+def text_without_spaces_is_equal_to_title(
+    conn, table_name: str, input_text: str
+) -> Optional[AnimeInfo]:
     input_text = slugify(input_text)
     input_text = input_text.replace("-", "")
     with conn:
@@ -177,7 +205,9 @@ def text_without_spaces_is_equal_to_title(conn, table_name: str, input_text: str
                 return None
 
 
-def text_without_spaces_is_equal_to_title_english(conn, table_name: str, input_text: str):
+def text_without_spaces_is_equal_to_title_english(
+    conn, table_name: str, input_text: str
+) -> Optional[AnimeInfo]:
     input_text = slugify(input_text)
     input_text = input_text.replace("-", "")
     with conn:
@@ -196,7 +226,9 @@ def text_without_spaces_is_equal_to_title_english(conn, table_name: str, input_t
                 return None
 
 
-def text_without_spaces_is_in_synonyms(conn, table_name: str, input_text: str):
+def text_without_spaces_is_in_synonyms(
+    conn, table_name: str, input_text: str
+) -> Optional[AnimeInfo]:
     input_text = slugify(input_text)
     input_text = input_text.replace("-", "")
     with conn:
@@ -216,7 +248,9 @@ def text_without_spaces_is_in_synonyms(conn, table_name: str, input_text: str):
                 return None
 
 
-def text_is_substring_of_slug_title(conn, table_name: str, text_input: str):
+def text_is_substring_of_slug_title(
+    conn, table_name: str, text_input: str
+) -> Optional[AnimeInfo]:
     with conn:
         with conn.cursor() as cursor:
             query = sql.SQL(
@@ -233,7 +267,9 @@ def text_is_substring_of_slug_title(conn, table_name: str, text_input: str):
                 return None
 
 
-def text_is_substring_of_slug_title_english(conn, table_name: str, text_input: str):
+def text_is_substring_of_slug_title_english(
+    conn, table_name: str, text_input: str
+) -> Optional[AnimeInfo]:
     with conn:
         with conn.cursor() as cursor:
             query = sql.SQL(
@@ -250,7 +286,9 @@ def text_is_substring_of_slug_title_english(conn, table_name: str, text_input: s
                 return None
 
 
-def text_is_substring_of_slug_synonym_array(conn, table_name: str, text_input: str):
+def text_is_substring_of_slug_synonym_array(
+    conn, table_name: str, text_input: str
+) -> Optional[AnimeInfo]:
     with conn:
         with conn.cursor() as cursor:
             query = sql.SQL(
@@ -268,7 +306,9 @@ def text_is_substring_of_slug_synonym_array(conn, table_name: str, text_input: s
                 return None
 
 
-def text_is_substring_of_synonym_array(conn, table_name: str, text_input: str):
+def text_is_substring_of_synonym_array(
+    conn, table_name: str, text_input: str
+) -> Optional[AnimeInfo]:
     with conn:
         with conn.cursor() as cursor:
             query = sql.SQL(
@@ -286,7 +326,7 @@ def text_is_substring_of_synonym_array(conn, table_name: str, text_input: str):
                 return None
 
 
-def deal_with_resolutions(input_string):
+def deal_with_resolutions(input_string: str):
     # solve [Sword Art Online, 1280×800] - delete resolution numbers
     # get rid of ×
     input_string = input_string.replace("×", "x")
@@ -298,10 +338,9 @@ def deal_with_resolutions(input_string):
 # the order of functions below is very (!) important and
 # they are used locally in this file
 #########################################################
-DIRECT_SEARCH_FUNCS = [text_is_equal_to_column,
-                       slug_text_is_equal_to_slug_column]
+DIRECT_SEARCH_FUNCS: list = [text_is_equal_to_column, slug_text_is_equal_to_slug_column]
 
-LESS_ACCURATE_SEARCH_FUNCS = [
+LESS_ACCURATE_SEARCH_FUNCS: list = [
     text_is_in_synonyms_array,
     text_is_in_slugified_synonyms_array,
     text_without_spaces_is_equal_to_title,
@@ -321,48 +360,48 @@ LESS_ACCURATE_SEARCH_FUNCS = [
 # we need to make sure that they are the same
 # as the ones used for detection
 #########################################################
-JUST_USE_TITLE = [
+JUST_USE_TITLE: list = [
     text_is_equal_to_column,
     slug_text_is_equal_to_slug_column,
     text_without_spaces_is_equal_to_title,
     text_without_spaces_is_equal_to_title_english,
-
     text_is_substring_of_slug_title,
     text_is_substring_of_slug_title_english,
 ]
 
-JUST_USE_SYNONYM_TITLE = [
+JUST_USE_SYNONYM_TITLE: list = [
     text_is_in_synonyms_array,
     text_is_in_slugified_synonyms_array,
     text_without_spaces_is_in_synonyms,
 ]
 
-JUST_USE_FRANCHISE = [
+JUST_USE_FRANCHISE: list = [
     text_without_spaces_is_equal_to_franchise_column,
     text_is_substring_of_franchise,
 ]
 
-MAYBE_USE_FRANCHISE = [
-
+MAYBE_USE_FRANCHISE: list = [
     text_is_substring_of_synonym_array,
     text_is_substring_of_slug_synonym_array,
 ]
 
 # make sure the functions that are used for judgement algorithm
 # are the same ones used detection locally
-assert len(DIRECT_SEARCH_FUNCS + LESS_ACCURATE_SEARCH_FUNCS) == len(JUST_USE_TITLE + JUST_USE_SYNONYM_TITLE + JUST_USE_FRANCHISE + MAYBE_USE_FRANCHISE)
+assert len(DIRECT_SEARCH_FUNCS + LESS_ACCURATE_SEARCH_FUNCS) == len(
+    JUST_USE_TITLE + JUST_USE_SYNONYM_TITLE + JUST_USE_FRANCHISE + MAYBE_USE_FRANCHISE
+)
 
 
-def detect_anime_from_string(conn, input_text):
+def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
     """
     0) Prepare text:
         0.0) lowercase and strip leading and trailing whitespace
-        0.1) remove multiple whitespace
+        0.1) remove multiple whitespaces
         0.2) solve [Sword Art Online, 1280×800]
-        0.3) fuck idolm@@@ster
+        0.3) idolm@@@ster
         0.4) only numbers title - is garbage
         0.5) replace &amp; with &
-        0.6) fuck daily idolmaster --> Daily iDOLM@STER #236
+        0.6)  daily idolmaster --> Daily iDOLM@STER #236
 
     Then attempt to find anime, with methods ordered from highest accuracy to lowest
 
@@ -385,47 +424,38 @@ def detect_anime_from_string(conn, input_text):
     if "&amp;" in input_text:
         input_text = input_text.replace("&amp;", "&")
 
-    # filtered before going into this function
-    # if "daily" in input_text and "#" in input_text:
-    #     input_text = input_text.replace("daily", "")
-    #     input_text = re.sub(r"#\d+", "", input_text)
-
-    # cleanup after deletions
-
     input_text = input_text.strip()
     input_text = " ".join(input_text.split())
 
-    for table in ['non_anime', 'anime']:
+    for table in ["non_anime", "anime"]:
         # check direct equality to column
         column_names = ["title", "title_english"]
         for column in column_names:
             for count, func in enumerate(DIRECT_SEARCH_FUNCS):
-                result_list = []
-                list_of_ids = func(conn, table, column, input_text)
-                if list_of_ids:
-                    result_list.append(list_of_ids)
-                    result_list.append(DIRECT_SEARCH_FUNCS[count].__name__)
-                    result_list.append(column)
-                    if table == 'anime':
-                        result_list.append(True)
-                    else:
-                        result_list.append(False)
+                if anime_info := func(conn, table, column, input_text):
+                    # we need to store the function that found the anime
+                    func_name = DIRECT_SEARCH_FUNCS[count].__name__
+                    # we have 2 different tables with similar structure, we need to know where to look
+                    detected_anime = AnimeDetection(
+                        anime_info=anime_info[0],
+                        func_name=func_name,
+                        is_from_anime=True if table == "anime" else False,
+                        column=column,
+                    )
 
-                    return result_list
+                    return detected_anime
 
-    for table in ['non_anime', 'anime']:
+    for table in ["non_anime", "anime"]:
         for count, func in enumerate(LESS_ACCURATE_SEARCH_FUNCS):
-            result_list = []
-            list_of_ids = func(conn, table, input_text)
-            if list_of_ids:
-                result_list.append(list_of_ids)
-                result_list.append(LESS_ACCURATE_SEARCH_FUNCS[count].__name__)
-                if table == 'anime':
-                    result_list.append(True)
-                else:
-                    result_list.append(False)
+            func_name = LESS_ACCURATE_SEARCH_FUNCS[count].__name__
+            if anime_info := func(conn, table, input_text):
+                detected_anime = AnimeDetection(
+                    anime_info=anime_info[0],
+                    func_name=func_name,
+                    is_from_anime=True if table == "anime" else False,
+                )
 
-                return result_list
+                return detected_anime
 
     if "&" in input_text:
         input_text = input_text.replace("&", "and")
@@ -440,7 +470,7 @@ def detect_anime_from_string(conn, input_text):
             return res
 
     # sometimes there are two titles split by comma, or slash or some other shit
-    try_again_chars = [',', '/', ' x ', '-', ':']
+    try_again_chars = [",", "/", " x ", "-", ":"]
     for char in try_again_chars:
         if char in input_text and input_text.count(char) < 2:
             possible_titles = input_text.split(char)
@@ -450,14 +480,16 @@ def detect_anime_from_string(conn, input_text):
                     return res
 
     # or by some words
-    try_again_words = ['from', 'and', 'or']
+    try_again_words = ["from", "and", "or"]
     for word in try_again_words:
-        if word in input_text.split(' ') and input_text.split(' ').count(word) < 2:
+        if word in input_text.split(" ") and input_text.split(" ").count(word) < 2:
             possible_titles = input_text.split(word)
             for title in possible_titles:
                 res = detect_anime_from_string(conn, title)
                 if res:
                     return res
+
+    return None
 
 
 def main():

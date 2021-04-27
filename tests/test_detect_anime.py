@@ -82,7 +82,7 @@ def test_detect_anime_from_string(setup_database, input_text, expected_id):
     if res is None:
         assert res == expected_id
     else:
-        assert res[0][0][0] == expected_id
+        assert res.anime_id == expected_id
 
 
 @pytest.mark.parametrize(

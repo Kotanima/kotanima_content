@@ -10,7 +10,7 @@ load_dotenv(find_dotenv())
 ################################################################################################
 # PATH VARIABLES, CAN CHANGE OR CREATE THESE EXACT FOLDERS (keep structure!!):
 django_backup_path = r"./Backups/"
-backup_bat_path = r"."  # backup.bat script location (folder with code)
+backup_bat_path = r"."  # backup.sh script location 
 
 ################################################################################################
 django_backup_path = str(pathlib.Path(django_backup_path).absolute())

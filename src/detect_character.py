@@ -6,60 +6,69 @@ def detect_character(conn, text: str, mal_id: int, is_anime: bool):
     # delete words with len <= 2
     words_arr = [word for word in words_arr if len(word) > 2]
     # sort the array so the longest words with capital letters come first
-    words_arr.sort(key=lambda s: (
-        sum(map(str.isupper, s)), len(s)), reverse=True)
+    words_arr.sort(key=lambda s: (sum(map(str.isupper, s)), len(s)), reverse=True)
 
     if is_anime:
-        table_name = 'anime_characters'
+        table_name = "anime_characters"
     else:
-        table_name = 'non_anime_characters'
+        table_name = "non_anime_characters"
 
-    for func in [get_main_char_from_db, get_supporting_char_from_db,
-                 get_slug_main_char_from_db, get_slug_supporting_char_from_db]:
+    for func in [
+        get_main_char_from_db,
+        get_supporting_char_from_db,
+        get_slug_main_char_from_db,
+        get_slug_supporting_char_from_db,
+    ]:
         for word in words_arr:
             res = func(conn, table_name, mal_id, word)
             if res:
-                return '_'.join(res[0][0])
+                return "_".join(res[0][0])
 
     # attempt to find character in the same franchise
     franchise = get_franchise_from_id(conn, is_anime, mal_id)
     id_list = get_ids_for_franchise(conn, is_anime, franchise)
     for id_tuple in id_list:
         mal_id = id_tuple[0]
-        for func in [get_main_char_from_db, get_supporting_char_from_db,
-                     get_slug_main_char_from_db, get_slug_supporting_char_from_db]:
+        for func in [
+            get_main_char_from_db,
+            get_supporting_char_from_db,
+            get_slug_main_char_from_db,
+            get_slug_supporting_char_from_db,
+        ]:
             for word in words_arr:
                 res = func(conn, table_name, mal_id, word)
                 if res:
-                    return '_'.join(res[0][0])
+                    return "_".join(res[0][0])
 
 
-def get_franchise_from_id(conn, is_anime, anime_id):
+def get_franchise_from_id(conn, is_anime: bool, anime_id: int):
     if is_anime:
-        table_name = 'anime'
+        table_name = "anime"
     else:
-        table_name = 'non_anime'
+        table_name = "non_anime"
 
     with conn:
         with conn.cursor() as cursor:
-            query = sql.SQL("""SELECT franchise FROM {0} WHERE anime_id=%s"""
-                            ).format(sql.Identifier(table_name))
+            query = sql.SQL("""SELECT franchise FROM {0} WHERE anime_id=%s""").format(
+                sql.Identifier(table_name)
+            )
 
             cursor.execute(query, (anime_id,))
             data = cursor.fetchone()
             return data
 
 
-def get_ids_for_franchise(conn, is_anime, franchise):
+def get_ids_for_franchise(conn, is_anime: bool, franchise: str):
     if is_anime:
-        table_name = 'anime'
+        table_name = "anime"
     else:
-        table_name = 'non_anime'
+        table_name = "non_anime"
 
     with conn:
         with conn.cursor() as cursor:
-            query = sql.SQL("""SELECT anime_id FROM {0} WHERE franchise=%s"""
-                            ).format(sql.Identifier(table_name))
+            query = sql.SQL("""SELECT anime_id FROM {0} WHERE franchise=%s""").format(
+                sql.Identifier(table_name)
+            )
 
             cursor.execute(query, (franchise,))
             data = cursor.fetchall()
@@ -126,7 +135,9 @@ def get_slug_main_char_from_db(conn, table_name: str, mal_id: int, input_text: s
                 return None
 
 
-def get_slug_supporting_char_from_db(conn, table_name: str, mal_id: int, input_text: str):
+def get_slug_supporting_char_from_db(
+    conn, table_name: str, mal_id: int, input_text: str
+):
     with conn:
         with conn.cursor() as cursor:
             query = sql.SQL(
@@ -147,4 +158,4 @@ def get_slug_supporting_char_from_db(conn, table_name: str, mal_id: int, input_t
 
 
 if __name__ == "__main__":
-    detect_character()
+    pass

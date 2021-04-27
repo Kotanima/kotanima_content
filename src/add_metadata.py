@@ -1,11 +1,13 @@
-from postgres import (connect_to_db,
-                      set_img_source_link_by_phash,
-                      set_invisible_tags_by_phash,
-                      set_visible_tags_by_phash, 
-                      get_all_approved_posts,
-                      set_mal_id_by_phash)
-from tags_resolver import get_mal_id_vis_and_invis_tags
+from postgres import (
+    connect_to_db,
+    get_all_approved_posts,
+    set_img_source_link_by_phash,
+    set_invisible_tags_by_phash,
+    set_mal_id_by_phash,
+    set_visible_tags_by_phash,
+)
 from source_search import get_submission_source
+from tags_resolver import get_mal_id_vis_and_invis_tags
 
 
 def add_metadata_to_approved_posts():
@@ -13,13 +15,26 @@ def add_metadata_to_approved_posts():
     approved_posts = get_all_approved_posts(conn)
 
     for post in approved_posts:
-        (mal_id, title, post_id, author, sub_name, phash, source_link, visible_tags) = post
+        (
+            mal_id,
+            title,
+            post_id,
+            author,
+            sub_name,
+            phash,
+            source_link,
+            visible_tags,
+        ) = post
         if not source_link and not visible_tags:
             src_link = get_submission_source(post_id, author)
             set_img_source_link_by_phash(conn, sub_name, phash, src_link)
 
         if not visible_tags:
-            res_anime_id, res_visible_tags, res_invis_tags = get_mal_id_vis_and_invis_tags(conn, title)
+            (
+                res_anime_id,
+                res_visible_tags,
+                res_invis_tags,
+            ) = get_mal_id_vis_and_invis_tags(conn, title)
             if res_visible_tags:
                 set_visible_tags_by_phash(conn, sub_name, phash, res_visible_tags)
             if res_invis_tags:
