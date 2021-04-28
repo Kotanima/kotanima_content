@@ -47,12 +47,12 @@ def main():
         mal_ids.remove((0, None))
     except ValueError:
         pass
-    mal_ids_cycler = cycle(mal_ids)  # cycle through anime postss
+    mal_ids_cycler = cycle(mal_ids[1])  # cycle through anime postss
 
-    POST_AMOUNT_INCREMENT = 2  # post 1 original post and 1 anime post
-    anime_counter = 0
+    POST_AMOUNT_INCREMENT = 3  # post 1 original post and 1 anime post
 
-    while postponed_posts_amount + POST_AMOUNT_INCREMENT <= 70:
+
+    while postponed_posts_amount + POST_AMOUNT_INCREMENT <= 20:
         postponed_posts_amount += POST_AMOUNT_INCREMENT
 
         last_post_date = get_random_time_next_hour(last_post_date)
@@ -63,19 +63,22 @@ def main():
             print("No approved original posts")
 
         # alternate between most popular posts and random posts
-        if anime_counter % 2 == 0:
-            mal_id = next(mal_ids_cycler)
-        else:
-            try:
-                mal_id = random.choice(mal_ids)[1]
-            except IndexError:
-                print("No approved anime posts left")
-                continue
+
+        mal_id = next(mal_ids_cycler)
+        last_post_date = get_random_time_next_hour(last_post_date)
+        posts = get_approved_anime_posts(conn, mal_id=mal_id)
+        generate_vk_post(OWNER_ID, last_post_date, posts)
+
+        try:
+            mal_id = random.choice(mal_ids)[1]
+        except IndexError:
+            print("No approved anime posts left")
+            continue
 
         last_post_date = get_random_time_next_hour(last_post_date)
         posts = get_approved_anime_posts(conn, mal_id=mal_id)
         generate_vk_post(OWNER_ID, last_post_date, posts)
-        anime_counter += 1
+
 
     conn.close()
 
@@ -97,7 +100,7 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
 
     try:
         first_img_name = img_names[0]
-    except IndexError:
+    except (IndexError, TypeError) as e:
         return  # or not ?
 
     similar_img_names = get_similar_imgs_by_histogram_correlation(
@@ -131,11 +134,11 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
     else:  # more than one picture: only display anime name and hide char name
         try:
             anime_name = visible_tags[0]
-        except IndexError:
+        except (IndexError, TypeError) as e:
             anime_name = None
         try:
             char_name = visible_tags[1]
-        except IndexError:
+        except (IndexError, TypeError) as e:
             char_name = None
 
         if anime_name:
