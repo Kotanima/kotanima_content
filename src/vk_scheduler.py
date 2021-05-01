@@ -51,8 +51,7 @@ def main():
 
     POST_AMOUNT_INCREMENT = 3  # post 1 original post and 1 anime post
 
-
-    while postponed_posts_amount + POST_AMOUNT_INCREMENT <= 20:
+    while postponed_posts_amount + POST_AMOUNT_INCREMENT <= 70:
         postponed_posts_amount += POST_AMOUNT_INCREMENT
 
         last_post_date = get_random_time_next_hour(last_post_date)
@@ -78,7 +77,6 @@ def main():
         last_post_date = get_random_time_next_hour(last_post_date)
         posts = get_approved_anime_posts(conn, mal_id=mal_id)
         generate_vk_post(OWNER_ID, last_post_date, posts)
-
 
     conn.close()
 
@@ -167,10 +165,15 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
             hidden_text = source_link + "\n"
         else:
             hidden_text = ""
+
         # get rid of tags that were already used
-        invisible_tags = [
-            tag for tag in invisible_tags if tag not in total_hidden_tag_list
-        ]
+        if invisible_tags:
+            invisible_tags = [
+                tag for tag in invisible_tags if tag not in total_hidden_tag_list
+            ]
+        else:
+            invisible_tags = []
+
         # add unique ones
         total_hidden_tag_list += invisible_tags
         # check VK tags amount limit
