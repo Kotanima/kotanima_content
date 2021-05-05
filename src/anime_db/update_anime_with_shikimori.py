@@ -74,8 +74,7 @@ def query_shikimori(conn, mal_id, existing_synonyms):
 
     if synonyms:
         if existing_synonyms:
-            new_syn_list = [
-                syn for syn in synonyms if syn not in existing_synonyms]
+            new_syn_list = [syn for syn in synonyms if syn not in existing_synonyms]
         else:
             new_syn_list = synonyms
 
@@ -86,7 +85,7 @@ def query_shikimori(conn, mal_id, existing_synonyms):
 
 
 if __name__ == "__main__":
-    conn, _ = connect_to_db()
+    conn = connect_to_db()
     res = get_ids_syn(conn)
     print(len(res))
     for anime_id, exist_syn_list in res:

@@ -16,7 +16,7 @@ def get_tag_rules(conn):
 
 
 def get_extra_tags(title: str):
-    conn, _ = connect_to_db()
+    conn = connect_to_db()
     tag_rules = get_tag_rules(conn)
 
     extra_tags = []

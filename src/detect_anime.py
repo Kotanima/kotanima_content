@@ -17,7 +17,7 @@ AnimeInfo = tuple[int, str, str, str, str]
 @dataclass
 class AnimeDetection:
     anime_info: AnimeInfo
-    func_name: str
+    func_name : str
     is_from_anime: bool
     column: Optional[str] = None
 
@@ -493,7 +493,7 @@ def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
 
 
 def main():
-    conn, _ = connect_to_db()
+    conn = connect_to_db()
     input_str = "Girl's Last Tour"
     res = detect_anime_from_string(conn, input_str)
     print(res)

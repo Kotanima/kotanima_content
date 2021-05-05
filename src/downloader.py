@@ -10,20 +10,31 @@ from PIL import Image, ImageFile
 
 from image_similarity import generate_hist_cache
 from postgres import connect_to_db, get_disliked_posts, set_selected_status_by_phash
-
+import psaw
+import psycopg2
+from dataclasses import dataclass
 
 load_dotenv(find_dotenv())
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True  # else OsError
 
 
-STATIC_FOLDER_PATH = os.getenv("STATIC_FOLDER_PATH")
-
-
 MEGABYTE = 1000000
 GIGABYTE = 1000000000
 
+STATIC_FOLDER_PATH = os.getenv("STATIC_FOLDER_PATH")
 FOLDER_SIZE_LIMIT = 2.5 * GIGABYTE
+
+
+@dataclass
+class RedditPost:
+    post_id: int
+    author: str
+    created_utc: int
+    title: str
+    url: str
+    phash: str
+    sub_name: str
 
 
 def get_reddit_post_data(cursor, limit: int):
@@ -37,7 +48,11 @@ def get_reddit_post_data(cursor, limit: int):
               ORDER BY RANDOM()
               LIMIT {limit}"""
 
-    cursor.execute(query)
+    try:
+        cursor.execute(query)
+    except psycopg2.errors.ProtocolViolation as exc:
+        print(f"DB error: {exc}")
+        return
     data = cursor.fetchall()
     return data
 
@@ -138,34 +153,44 @@ def get_static_folder_size():
 def download_more(amount):
     # get N random entries from db
     # download them, rename, optimize size
-    connection, _ = connect_to_db()
+    connection = connect_to_db()
+
     with connection:
         with connection.cursor() as cursor:
-            posts = get_reddit_post_data(cursor, amount)
-    for post in posts:
-        (post_id, author, created_utc, title, url, phash, sub_name) = post
+            try:
+                posts = get_reddit_post_data(cursor, amount)
+            except (
+                psycopg2.InterfaceError,
+                psycopg2.errors.ProtocolViolation,
+            ):  # connection errors
+                print("DB Connection error, couldnt download")
+                return
 
-        did_load = download_pic_from_url(url, folder=STATIC_FOLDER_PATH, limit=1)
+    for post in posts:
+        post = RedditPost(*post)
+
+        did_load = download_pic_from_url(post.url, folder=STATIC_FOLDER_PATH, limit=1)
         if not did_load:
-            print("Couldnt download file, with ", f"{url=}")
+            print("Couldnt download file, with ", f"{post.url=}")
             continue
         else:
             file_path = rename_latest_file_in_folder(
-                STATIC_FOLDER_PATH, f"{sub_name}_{post_id}"
+                STATIC_FOLDER_PATH, f"{post.sub_name}_{post.post_id}"
             )
 
         optimize_image(file_path)
         # mark as selected in db
         set_selected_status_by_phash(
-            connection, status=False, table_name=sub_name, phash=phash
+            connection, status=False, table_name=post.sub_name, phash=post.phash
         )
 
-    connection.close()
+    if connection:
+        connection.close()
 
 
 def delete_disliked_posts():
     # also unselect them!
-    conn, _ = connect_to_db()
+    conn = connect_to_db()
     disliked_posts = get_disliked_posts(conn)
     for post in disliked_posts:
         (sub_name, post_id, phash) = post

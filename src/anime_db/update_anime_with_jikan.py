@@ -9,7 +9,9 @@ from ..postgres import connect_to_db
 
 # python -m src.anime_db.update_anime_with_jikan
 HOME_PATH = os.environ.get("HOME")
-PATH_TO_MAL_ID_CACHE = str(pathlib.Path(HOME_PATH, "mal-id-cache/cache/anime_cache.json"))
+PATH_TO_MAL_ID_CACHE = str(
+    pathlib.Path(HOME_PATH, "mal-id-cache/cache/anime_cache.json")
+)
 
 
 def get_all_ids_from_db(conn):
@@ -90,7 +92,7 @@ def add_jikan_response_to_db(conn, jikan_obj):
 
 
 def main():
-    conn, _ = connect_to_db()
+    conn = connect_to_db()
     db_ids = get_all_ids_from_db(conn)
     cache_ids = get_ids_from_mal_id_cache()
     left_over_ids = [cached_id for cached_id in cache_ids if cached_id not in db_ids]

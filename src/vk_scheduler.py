@@ -35,14 +35,15 @@ def main():
     add_metadata_to_approved_posts()
     generate_hist_cache()  # for finding similar images in the future
 
-    conn, _ = connect_to_db()
     OWNER_ID = int(os.environ.get("VK_KOTANIMA_OWNER_ID"))
 
     last_post_date, postponed_posts_amount = get_latest_post_date_and_total_post_count(
         OWNER_ID
     )
 
+    conn = connect_to_db()
     mal_ids = aggregate_approved_mal_id_counts(conn)
+
     try:
         mal_ids.remove((0, None))
     except ValueError:
@@ -51,7 +52,7 @@ def main():
 
     POST_AMOUNT_INCREMENT = 3  # post 1 original post and 1 anime post
 
-    while postponed_posts_amount + POST_AMOUNT_INCREMENT <= 70:
+    while postponed_posts_amount <= 71:
         postponed_posts_amount += POST_AMOUNT_INCREMENT
 
         last_post_date = get_random_time_next_hour(last_post_date)
@@ -60,10 +61,16 @@ def main():
             generate_vk_post(OWNER_ID, last_post_date, posts)
         else:
             print("No approved original posts")
+            postponed_posts_amount -= 1
 
         # alternate between most popular posts and random posts
 
-        mal_id = next(mal_ids_cycler)
+        try:
+            mal_id = next(mal_ids_cycler)
+        except StopIteration:
+            print("No approved anime posts left")
+            postponed_posts_amount -= 1
+            continue
         last_post_date = get_random_time_next_hour(last_post_date)
         posts = get_approved_anime_posts(conn, mal_id=mal_id)
         generate_vk_post(OWNER_ID, last_post_date, posts)
@@ -72,6 +79,7 @@ def main():
             mal_id = random.choice(mal_ids)[1]
         except IndexError:
             print("No approved anime posts left")
+            postponed_posts_amount -= 1
             continue
 
         last_post_date = get_random_time_next_hour(last_post_date)
@@ -197,7 +205,7 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
     # cleanup
 
     # add to vk_post table
-    conn, _ = connect_to_db()
+    conn = connect_to_db()
     for phash, sub_name in zip(phash_list, sub_name_list):
         insert_vk_record(conn, last_post_date, phash)
         set_selected_status_by_phash(conn, None, phash, sub_name)

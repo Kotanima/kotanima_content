@@ -12,15 +12,13 @@ def insert_non_anime_character(conn, non_anime_id, name_array, image_url):
             cursor.execute(
                 """INSERT INTO non_anime_characters (non_anime_id,name_array,image_url)
                    VALUES (%s,%s,%s)""",
-                (
-                    non_anime_id, name_array, image_url
-                )
+                (non_anime_id, name_array, image_url),
             )
 
 
 if __name__ == "__main__":
     pass
-    # conn, _ = connect_to_db()
+    # conn = connect_to_db()
 
     # insert_non_anime_character(conn, non_anime_id=7, name_array=["Lumine"],
     #                            image_url=None)

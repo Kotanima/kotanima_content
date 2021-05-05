@@ -6,7 +6,7 @@ from ..postgres import connect_to_db
 
 
 def insert_char_into_db(conn, anime_mal_id, character_mal_id, name, image_url, role):
-    name = name.replace(',', ' ')
+    name = name.replace(",", " ")
     name_array = name.split()
     with conn:
         with conn.cursor() as cursor:
@@ -32,7 +32,7 @@ def get_characters_for_anime_id(mal_id):
 
 
 if __name__ == "__main__":
-    conn, _ = connect_to_db()
+    conn = connect_to_db()
     res = get_characters_for_anime_id(426)
     print(res)
     # insert_char_into_db(conn, 14359, -12, 'Hatsune, Miku', image_url=None, role='Main')

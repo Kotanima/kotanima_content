@@ -12,8 +12,8 @@ def connect_to_db():
         port=int(os.environ.get("DB_PORT")),
         database=os.environ.get("DB_NAME")
     )
-    cursor = connection.cursor()
-    return connection, cursor
+    connection.autocommit=True
+    return connection
 
 
 def insert_vk_record(conn, scheduled_date: str, phash: str):

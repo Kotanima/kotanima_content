@@ -1,16 +1,11 @@
-
 from ..postgres import connect_to_db
 
 # python -m src.anime_db.update_non_anime
 
 
-def insert_non_anime_record(conn,
-                            title,
-                            title_japanese,
-                            title_english,
-                            title_russian,
-                            title_synonyms,
-                            franchise):
+def insert_non_anime_record(
+    conn, title, title_japanese, title_english, title_russian, title_synonyms, franchise
+):
     with conn:
         with conn.cursor() as cursor:
             cursor.execute(
@@ -29,7 +24,7 @@ def insert_non_anime_record(conn,
 
 if __name__ == "__main__":
     pass
-    # conn, _ = connect_to_db()
+    # conn = connect_to_db()
     # insert_non_anime_record(conn, title="Katawa Shoujo",
     #                         title_japanese=None,
     #                         title_english=None,

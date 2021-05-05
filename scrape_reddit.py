@@ -36,6 +36,7 @@ def connect_to_postgres():
         port=int(os.environ.get("DB_PORT")),
         database=os.environ.get("DB_NAME"),
     )
+    connection.autocommit=True
     cursor = connection.cursor()
     return connection, cursor
 

@@ -11,7 +11,7 @@ from tags_resolver import get_mal_id_vis_and_invis_tags
 
 
 def add_metadata_to_approved_posts():
-    conn, _ = connect_to_db()
+    conn = connect_to_db()
     approved_posts = get_all_approved_posts(conn)
 
     for post in approved_posts:

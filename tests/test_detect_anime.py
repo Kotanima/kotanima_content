@@ -17,17 +17,18 @@ from src.detect_anime import (
 
 @pytest.fixture
 def setup_database():
-    """ Fixture to set up  database """
-    conn, _ = connect_to_db()
+    """Fixture to set up  database"""
+    conn = connect_to_db()
     print("setup db")
     yield conn
 
 
 # pytest -x ./tests/test_detect_anime.py
 
+
 @pytest.mark.parametrize(
     "input_text,expected_id",
-    [  
+    [
         ("Touhou Project", 9875),
         ("K-On!, Kotobuki Tsumugi", 5680),
         ("Disgaea 4", 860),
@@ -93,7 +94,7 @@ def test_detect_anime_from_string(setup_database, input_text, expected_id):
 )
 def test_text_without_spaces_is_title(setup_database, input_text, result_id):
     conn = setup_database
-    res = text_without_spaces_is_equal_to_title(conn, 'anime', input_text)
+    res = text_without_spaces_is_equal_to_title(conn, "anime", input_text)
     conn.close()
     assert res[0][0] == result_id
 
@@ -108,7 +109,7 @@ def test_input_text_is_substring_of_slug_title_english(
     setup_database, input_text, result_id
 ):
     conn = setup_database
-    res = text_is_substring_of_slug_title_english(conn, 'anime', input_text)
+    res = text_is_substring_of_slug_title_english(conn, "anime", input_text)
     conn.close()
     assert res[0][0] == result_id
 
@@ -121,7 +122,7 @@ def test_input_text_is_substring_of_slug_title_english(
 )
 def test_input_text_is_substring_of_slug_title(setup_database, input_text, result_id):
     conn = setup_database
-    res = text_is_substring_of_slug_title(conn, 'anime', input_text)
+    res = text_is_substring_of_slug_title(conn, "anime", input_text)
     conn.close()
     assert res[0][0] == result_id
 
@@ -136,7 +137,7 @@ def test_text_without_spaces_is_in_franchise_column(
     setup_database, input_text, result_id
 ):
     conn = setup_database
-    res = text_without_spaces_is_equal_to_franchise_column(conn, 'anime', input_text)
+    res = text_without_spaces_is_equal_to_franchise_column(conn, "anime", input_text)
     conn.close()
     assert res[0][0] == result_id
 
@@ -149,7 +150,7 @@ def test_text_without_spaces_is_in_franchise_column(
 )
 def test_text_is_substring_of_franchise(setup_database, input_text, result_id):
     conn = setup_database
-    res = text_is_substring_of_franchise(conn, 'anime', input_text)
+    res = text_is_substring_of_franchise(conn, "anime", input_text)
     conn.close()
     assert res[0][0] == result_id
 
@@ -162,7 +163,7 @@ def test_text_is_substring_of_franchise(setup_database, input_text, result_id):
 )
 def test_text_is_in_synonyms_array(setup_database, input_text, result_id):
     conn = setup_database
-    res = text_is_in_synonyms_array(conn, 'anime', input_text)
+    res = text_is_in_synonyms_array(conn, "anime", input_text)
     conn.close()
 
     assert res[0][0] == result_id
@@ -177,7 +178,7 @@ def test_text_is_in_synonyms_array(setup_database, input_text, result_id):
 )
 def test_slug_text_is_in_slug_column(setup_database, db_column, input_text, result_id):
     conn = setup_database
-    res = slug_text_is_equal_to_slug_column(conn, 'anime', db_column, input_text)
+    res = slug_text_is_equal_to_slug_column(conn, "anime", db_column, input_text)
     conn.close()
     assert res[0][0] == result_id
 
@@ -191,6 +192,6 @@ def test_slug_text_is_in_slug_column(setup_database, db_column, input_text, resu
 )
 def test_text_is_in_column(setup_database, db_column, input_text, result_id):
     conn = setup_database
-    res = text_is_equal_to_column(conn, 'anime', db_column, input_text)
+    res = text_is_equal_to_column(conn, "anime", db_column, input_text)
     conn.close()
     assert res[0][0] == result_id

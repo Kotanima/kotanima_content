@@ -51,8 +51,6 @@ def get_tags_by_resolving_function_name(detected_obj):
     visible_tags = []
     invisible_tags = []
 
-    print(detected_obj)
-
     if not detected_obj:
         return [DEFAULT_STRING], []
 
@@ -163,10 +161,10 @@ def get_mal_id_vis_and_invis_tags(conn, title: str):
         if detected_obj:
             break
 
-    if detected_obj is not None:
-        # detect anime
-        vis_tags, invis_tags = get_tags_by_resolving_function_name(detected_obj)
+    # detect anime
+    vis_tags, invis_tags = get_tags_by_resolving_function_name(detected_obj)
 
+    if detected_obj is not None:
         # detect char name
         if char := detect_character(
             conn, title, detected_obj.anime_id, detected_obj.is_from_anime
@@ -193,16 +191,17 @@ def get_mal_id_vis_and_invis_tags(conn, title: str):
 
 
 def main():
-    conn, _ = connect_to_db()
+    conn = connect_to_db()
 
-    title = "Keeping warm neko [Kantai Collection]"
+    title = "Keeping warm neko [Original]"
 
     anime_id, vis_tags, invis_tags = get_mal_id_vis_and_invis_tags(conn, title)
     vis_string = convert_tags_to_vk_string(vis_tags)
     invis_string = convert_tags_to_vk_string(invis_tags)
-    print(vis_string)
+    print(f"{vis_string=}")
     print()
-    print(invis_string)
+    print(f"{invis_string=}")
+    conn.close()
 
 
 if __name__ == "__main__":
