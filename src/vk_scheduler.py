@@ -50,18 +50,15 @@ def main():
         pass
     mal_ids_cycler = cycle(mal_ids[1])  # cycle through anime postss
 
-    POST_AMOUNT_INCREMENT = 3  # post 1 original post and 1 anime post
-
-    while postponed_posts_amount <= 71:
-        postponed_posts_amount += POST_AMOUNT_INCREMENT
+    while postponed_posts_amount <= 75:
 
         last_post_date = get_random_time_next_hour(last_post_date)
         posts = get_approved_original_posts(conn)
         if posts:
             generate_vk_post(OWNER_ID, last_post_date, posts)
+            postponed_posts_amount += 1
         else:
             print("No approved original posts")
-            postponed_posts_amount -= 1
 
         # alternate between most popular posts and random posts
 
@@ -69,22 +66,34 @@ def main():
             mal_id = next(mal_ids_cycler)
         except StopIteration:
             print("No approved anime posts left")
-            postponed_posts_amount -= 1
             continue
+
         last_post_date = get_random_time_next_hour(last_post_date)
         posts = get_approved_anime_posts(conn, mal_id=mal_id)
         generate_vk_post(OWNER_ID, last_post_date, posts)
+        postponed_posts_amount += 1
 
         try:
             mal_id = random.choice(mal_ids)[1]
         except IndexError:
             print("No approved anime posts left")
-            postponed_posts_amount -= 1
             continue
 
         last_post_date = get_random_time_next_hour(last_post_date)
         posts = get_approved_anime_posts(conn, mal_id=mal_id)
         generate_vk_post(OWNER_ID, last_post_date, posts)
+        postponed_posts_amount += 1
+
+        try:
+            mal_id = next(mal_ids_cycler)
+        except StopIteration:
+            print("No approved anime posts left")
+            continue
+
+        last_post_date = get_random_time_next_hour(last_post_date)
+        posts = get_approved_anime_posts(conn, mal_id=mal_id)
+        generate_vk_post(OWNER_ID, last_post_date, posts)
+        postponed_posts_amount += 1
 
     conn.close()
 
