@@ -69,7 +69,12 @@ def get_similar_imgs_by_histogram_correlation(
             except KeyError:
                 current_hist = get_hist_for_file(img_name)
 
-            diff = cv2.compareHist(target_hist, current_hist, cv2.HISTCMP_CORREL)
+            try:
+                diff = cv2.compareHist(target_hist, current_hist, cv2.HISTCMP_CORREL)
+            except cv2.error:
+                print("Compare hist error")
+                continue
+
             if diff > CORRELATION_LIMIT:
                 result_images.append(img_name)
                 if len(result_images) == search_amount:
