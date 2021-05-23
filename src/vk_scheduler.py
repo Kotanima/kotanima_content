@@ -30,7 +30,7 @@ load_dotenv(find_dotenv())
 
 STATIC_PATH = os.getenv("STATIC_FOLDER_PATH")
 
-DEBUG = True
+DEBUG = False
 
 
 class VkScheduler:
@@ -107,7 +107,7 @@ def main():
 
     scheduler = VkScheduler()
 
-    while scheduler.get_postponed_posts_amount() <= 20:
+    while scheduler.get_postponed_posts_amount() <= 75:
         scheduler.make_original_post()
         scheduler.make_anime_post(random_post=False)
         scheduler.make_anime_post(random_post=True)
