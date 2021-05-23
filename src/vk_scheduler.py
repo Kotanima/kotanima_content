@@ -30,72 +30,129 @@ load_dotenv(find_dotenv())
 
 STATIC_PATH = os.getenv("STATIC_FOLDER_PATH")
 
+DEBUG = True
+
+
+class VkScheduler:
+    def __init__(self):
+        self._setup_owner_id()
+        self._set_mal_ids_from_db()
+
+        vk_info = get_latest_post_date_and_total_post_count(self._owner_id)
+        self._postponed_posts_amount = vk_info.post_count or 0
+        self._last_postponed_time = vk_info.last_postponed_time or 0
+
+    def _setup_owner_id(self):
+        if DEBUG:
+            self._owner_id = int(os.environ.get("VK_KROTKADZIMA_OWNER_ID"))
+        else:
+            self._owner_id = int(os.environ.get("VK_KOTANIMA_OWNER_ID"))
+
+    def _set_mal_ids_from_db(self):
+        conn = connect_to_db()
+        self._aggregated_ids = aggregate_approved_mal_id_counts(conn)
+        conn.close()
+
+        try:
+            self._aggregated_ids.remove((0, None))
+        except ValueError:
+            print("cant remove none element from mal ids")
+            pass
+
+        self._aggregated_ids_cycler = cycle(self._aggregated_ids)
+
+    def _get_next_post_time(self):
+        last_post_date = get_random_time_next_hour(self._last_postponed_time)
+        self._last_postponed_time = last_post_date
+        return last_post_date
+
+    def make_original_post(self):
+        conn = connect_to_db()
+        self._original_posts = get_approved_original_posts(conn)
+        conn.close()
+
+        generate_vk_post(
+            self._owner_id, self._get_next_post_time(), self._original_posts
+        )
+        self._postponed_posts_amount += 1
+
+    def make_anime_post(self, random_post=False):
+        # select random or next most popular myanimelist id and post to vk
+        if random_post:
+            try:
+                mal_id = random.choice(self._aggregated_ids).mal_id
+            except IndexError:
+                print("No approved anime posts left")
+                return False
+        else:
+            try:
+                mal_id = next(self._aggregated_ids_cycler).mal_id
+            except StopIteration:
+                print("No approved anime posts left")
+                return False
+
+        conn = connect_to_db()
+        posts = get_approved_anime_posts(conn, mal_id=mal_id)
+        conn.close()
+        generate_vk_post(self._owner_id, self._get_next_post_time(), posts)
+        self._postponed_posts_amount += 1
+
+    def get_postponed_posts_amount(self):
+        return self._postponed_posts_amount
+
 
 def main():
     add_metadata_to_approved_posts()
     generate_hist_cache()  # for finding similar images in the future
 
-    OWNER_ID = int(os.environ.get("VK_KOTANIMA_OWNER_ID"))
+    scheduler = VkScheduler()
 
-    last_post_date, postponed_posts_amount = get_latest_post_date_and_total_post_count(
-        OWNER_ID
-    )
+    while scheduler.get_postponed_posts_amount() <= 20:
+        scheduler.make_original_post()
+        scheduler.make_anime_post(random_post=False)
+        scheduler.make_anime_post(random_post=True)
 
-    conn = connect_to_db()
-    mal_ids = aggregate_approved_mal_id_counts(conn)
+    # conn = connect_to_db()
+    # original_posts = get_approved_original_posts(conn)
+    # conn.close()
+    # vk_post = VkPost(2, 3, original_posts)
 
-    try:
-        mal_ids.remove((0, None))
-    except ValueError:
-        pass
-    mal_ids_cycler = cycle(mal_ids[1])  # cycle through anime postss
 
-    while postponed_posts_amount <= 75:
+class VkPost:
+    def __init__(self, owner_id, last_post_date, reddit_posts):
+        self.owner_id = owner_id
+        self.last_post_date = last_post_date
+        self.reddit_posts = reddit_posts
 
-        last_post_date = get_random_time_next_hour(last_post_date)
-        posts = get_approved_original_posts(conn)
-        if posts:
-            generate_vk_post(OWNER_ID, last_post_date, posts)
-            postponed_posts_amount += 1
-        else:
-            print("No approved original posts")
+        self.post_data_img_path_dict = {}
+        self.img_names: list[str] = []
+        self.phash_list: list[str] = []  # so we can add these to vk_table later
+        self.sub_name_list: list[str] = []
 
-        # alternate between most popular posts and random posts
+        self.similar_img_names = []
 
-        try:
-            mal_id = next(mal_ids_cycler)
-        except StopIteration:
-            print("No approved anime posts left")
-            continue
+        self.init_post_data_dict()
+        self.init_similar_images()
 
-        last_post_date = get_random_time_next_hour(last_post_date)
-        posts = get_approved_anime_posts(conn, mal_id=mal_id)
-        generate_vk_post(OWNER_ID, last_post_date, posts)
-        postponed_posts_amount += 1
+    def init_post_data_dict(self):
+        for post in self.reddit_posts:
+            img_name = f"{post.sub_name}_{post.post_id}.jpg"
+            self.img_names.append(img_name)
+            self.post_data_img_path_dict[img_name] = post
 
         try:
-            mal_id = random.choice(mal_ids)[1]
-        except IndexError:
-            print("No approved anime posts left")
-            continue
+            self.first_img_name = self.img_names[0]
+        except (IndexError, TypeError) as e:
+            return False  # or not ?
 
-        last_post_date = get_random_time_next_hour(last_post_date)
-        posts = get_approved_anime_posts(conn, mal_id=mal_id)
-        generate_vk_post(OWNER_ID, last_post_date, posts)
-        postponed_posts_amount += 1
+    def init_similar_images(self):
+        self.similar_img_names = get_similar_imgs_by_histogram_correlation(
+            self.first_img_name, self.img_names, CORRELATION_LIMIT=0.85, search_amount=2
+        )
 
-        try:
-            mal_id = next(mal_ids_cycler)
-        except StopIteration:
-            print("No approved anime posts left")
-            continue
-
-        last_post_date = get_random_time_next_hour(last_post_date)
-        posts = get_approved_anime_posts(conn, mal_id=mal_id)
-        generate_vk_post(OWNER_ID, last_post_date, posts)
-        postponed_posts_amount += 1
-
-    conn.close()
+        self.similar_img_names = [
+            str(pathlib.Path(STATIC_PATH, img)) for img in similar_img_names
+        ]
 
 
 def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
@@ -108,8 +165,7 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
     sub_name_list = []
 
     for post in reddit_posts:
-        (post_id, sub_name, source_link, visible_tags, invisible_tags, _) = post
-        img_name = f"{sub_name}_{post_id}.jpg"
+        img_name = f"{post.sub_name}_{post.post_id}.jpg"
         img_names.append(img_name)
         post_data_img_path_dict[img_name] = post
 

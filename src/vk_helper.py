@@ -1,13 +1,15 @@
-import os
 import datetime
 import json
+import os
+from collections import namedtuple
 from random import randint
+from typing import Any
 
 import pytz
 import requests
 import vk_api
 from dotenv import find_dotenv, load_dotenv
-from typing import Any
+from typing import NamedTuple
 
 load_dotenv(find_dotenv())
 
@@ -71,7 +73,7 @@ def get_random_time_next_hour(date_timestamp: int):
     return int(date.timestamp())
 
 
-def get_latest_post_date_and_total_post_count(OWNER_ID: int) -> tuple[int, Any]:
+def get_latest_post_date_and_total_post_count(OWNER_ID: int):
     vk = vk_auth()
     tools = vk_api.VkTools(vk)
 
@@ -90,4 +92,5 @@ def get_latest_post_date_and_total_post_count(OWNER_ID: int) -> tuple[int, Any]:
         current_date = datetime.datetime.now(tz)
         latest_time = int(current_date.timestamp())
 
-    return latest_time, wall["count"]
+    vk_info = namedtuple("vk_info", ["last_postponed_time", "post_count"])
+    return vk_info(latest_time, wall["count"])
