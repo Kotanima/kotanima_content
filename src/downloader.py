@@ -45,7 +45,7 @@ def get_reddit_post_data(cursor, limit: int):
               AND phash NOT IN (SELECT phash FROM my_app_redditpost where selected=false)
               AND wrong_format=false
               AND selected is NULL
-              ORDER BY RANDOM()
+              ORDER BY created_utc DESC
               LIMIT {limit}"""
 
     try:
