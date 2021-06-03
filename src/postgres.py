@@ -35,6 +35,13 @@ def set_selected_status_by_phash(conn, status: bool, phash: str, table_name: str
             cursor.execute(query, (status, phash, table_name))
 
 
+def set_wrong_format_status_by_phash(conn, status: bool, phash: str, table_name: str):
+    with conn:
+        with conn.cursor() as cursor:
+            query = """UPDATE my_app_redditpost SET wrong_format=(%s) WHERE phash=(%s) AND sub_name=(%s) """
+            cursor.execute(query, (status, phash, table_name))
+
+
 def set_img_source_link_by_phash(conn, table_name: str, phash: str, source_link: str):
     with conn:
         with conn.cursor() as cursor:

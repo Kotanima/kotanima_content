@@ -9,7 +9,12 @@ from dotenv import find_dotenv, load_dotenv
 from PIL import Image, ImageFile
 
 from image_similarity import generate_hist_cache
-from postgres import connect_to_db, get_disliked_posts, set_selected_status_by_phash
+from postgres import (
+    connect_to_db,
+    get_disliked_posts,
+    set_selected_status_by_phash,
+    set_wrong_format_status_by_phash,
+)
 import psaw
 import psycopg2
 from dataclasses import dataclass
@@ -172,6 +177,9 @@ def download_more(amount):
         did_load = download_pic_from_url(post.url, folder=STATIC_FOLDER_PATH, limit=1)
         if not did_load:
             print("Couldnt download file, with ", f"{post.url=}")
+            set_wrong_format_status_by_phash(
+                connection, status=True, phash=post.phash, table_name=post.sub_name
+            )
             continue
         else:
             file_path = rename_latest_file_in_folder(
