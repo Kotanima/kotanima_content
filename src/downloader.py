@@ -31,6 +31,10 @@ STATIC_FOLDER_PATH = os.getenv("STATIC_FOLDER_PATH")
 FOLDER_SIZE_LIMIT = 2 * GIGABYTE
 
 
+# https://i.redd.it/cva4mu5zzs271.jpg
+# breaks on this  link
+
+
 @dataclass
 class RedditPost:
     post_id: int
@@ -45,11 +49,10 @@ class RedditPost:
 def get_reddit_post_data(cursor, limit: int):
     # TODO get safe subs from server
     query = f"""SELECT post_id, author, created_utc, title, url, phash, sub_name FROM my_app_redditpost 
-              WHERE sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape')
+              WHERE selected is NULL
               AND wrong_format=false
-              AND selected is NULL
+              AND sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape')
               AND phash NOT IN (SELECT phash FROM my_app_vkpost)
-              AND phash NOT IN (SELECT phash FROM my_app_redditpost where selected=false)
               ORDER BY created_utc DESC
               LIMIT {limit}"""
 
@@ -189,7 +192,7 @@ def download_more(amount):
         optimize_image(file_path)
         # mark as selected in db
         set_selected_status_by_phash(
-            connection, status=False, table_name=post.sub_name, phash=post.phash
+            connection, status=False, phash=post.phash, table_name=post.sub_name
         )
 
     if connection:
