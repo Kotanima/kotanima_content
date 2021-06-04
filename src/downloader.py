@@ -168,17 +168,17 @@ def download_more(amount):
                 psycopg2.InterfaceError,
                 psycopg2.errors.ProtocolViolation,
             ):  # connection errors
-                print("DB Connection error, couldnt download")
+                print("DB Connection error")
                 return
 
     for post in posts:
         post = RedditPost(*post)
-
+        print(f"Downloading: {post.url}")
         did_load = download_pic_from_url(post.url, folder=STATIC_FOLDER_PATH, limit=1)
         if not did_load:
             print("Couldnt download file, with ", f"{post.url=}")
             set_wrong_format_status_by_phash(
-                connection, status=True, phash=post.phash, table_name=post.sub_name
+                connection, status=True, post_id=post.post_id, table_name=post.sub_name
             )
             continue
         else:
