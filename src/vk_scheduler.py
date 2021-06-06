@@ -30,7 +30,7 @@ load_dotenv(find_dotenv())
 
 STATIC_PATH = os.getenv("STATIC_FOLDER_PATH")
 
-DEBUG = True
+DEBUG = False
 
 
 class VkScheduler:
