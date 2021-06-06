@@ -181,7 +181,7 @@ def download_more(amount):
         if not did_load:
             print("Couldnt download file, with ", f"{post.url=}")
             set_wrong_format_status_by_phash(
-                connection, status=True, post_id=post.post_id, table_name=post.sub_name
+                connection, status=True, post_id=post.post_id
             )
             continue
         else:
@@ -192,7 +192,7 @@ def download_more(amount):
         optimize_image(file_path)
         # mark as selected in db
         set_selected_status_by_phash(
-            connection, status=False, phash=post.phash, table_name=post.sub_name
+            connection, status=False, phash=post.phash
         )
 
     if connection:
@@ -205,7 +205,7 @@ def delete_disliked_posts():
     disliked_posts = get_disliked_posts(conn)
     for post in disliked_posts:
         (sub_name, post_id, phash) = post
-        set_selected_status_by_phash(conn, None, phash, sub_name)
+        set_selected_status_by_phash(conn, None, phash)
         filename = pathlib.Path(STATIC_FOLDER_PATH, f"{sub_name}_{post_id}.jpg")
 
         try:

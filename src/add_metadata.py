@@ -27,7 +27,7 @@ def add_metadata_to_approved_posts():
         ) = post
         if not source_link and not visible_tags:
             src_link = get_submission_source(post_id, author)
-            set_img_source_link_by_phash(conn, sub_name, phash, src_link)
+            set_img_source_link_by_phash(conn, phash=phash, source_link=src_link)
 
         if not visible_tags:
             (
@@ -36,12 +36,16 @@ def add_metadata_to_approved_posts():
                 res_invis_tags,
             ) = get_mal_id_vis_and_invis_tags(conn, title)
             if res_visible_tags:
-                set_visible_tags_by_phash(conn, sub_name, phash, res_visible_tags)
+                set_visible_tags_by_phash(
+                    conn, phash=phash, visible_tags=res_visible_tags
+                )
             if res_invis_tags:
-                set_invisible_tags_by_phash(conn, sub_name, phash, res_invis_tags)
+                set_invisible_tags_by_phash(
+                    conn, phash=phash, invisible_tags=res_invis_tags
+                )
 
             if not mal_id:
-                set_mal_id_by_phash(conn, sub_name, phash, res_anime_id)
+                set_mal_id_by_phash(conn, phash=phash, mal_id=res_anime_id)
 
     conn.close()
 

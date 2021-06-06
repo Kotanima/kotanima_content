@@ -30,7 +30,7 @@ load_dotenv(find_dotenv())
 
 STATIC_PATH = os.getenv("STATIC_FOLDER_PATH")
 
-DEBUG = False
+DEBUG = True
 
 
 class VkScheduler:
@@ -111,11 +111,6 @@ def main():
         scheduler.make_original_post()
         scheduler.make_anime_post(random_post=False)
         scheduler.make_anime_post(random_post=True)
-
-    # conn = connect_to_db()
-    # original_posts = get_approved_original_posts(conn)
-    # conn.close()
-    # vk_post = VkPost(2, 3, original_posts)
 
 
 class VkPost:
@@ -273,7 +268,7 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
     conn = connect_to_db()
     for phash, sub_name in zip(phash_list, sub_name_list):
         insert_vk_record(conn, last_post_date, phash)
-        set_selected_status_by_phash(conn, None, phash, sub_name)
+        set_selected_status_by_phash(conn, status=None, phash=phash)
 
     conn.close()
 

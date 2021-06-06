@@ -28,48 +28,48 @@ def insert_vk_record(conn, scheduled_date: str, phash: str):
             cursor.execute(query, (scheduled_date, phash))
 
 
-def set_selected_status_by_phash(conn, status: bool, phash: str, table_name: str):
+def set_selected_status_by_phash(conn, status: bool, phash: str):
     with conn:
         with conn.cursor() as cursor:
-            query = """UPDATE my_app_redditpost SET selected=(%s) WHERE phash=(%s) AND sub_name=(%s) """
-            cursor.execute(query, (status, phash, table_name))
+            query = """UPDATE my_app_redditpost SET selected=(%s) WHERE phash=(%s) """
+            cursor.execute(query, (status, phash))
 
 
-def set_wrong_format_status_by_phash(conn, status: bool, phash: str, table_name: str):
+def set_wrong_format_status_by_phash(conn, status: bool, phash: str):
     with conn:
         with conn.cursor() as cursor:
-            query = """UPDATE my_app_redditpost SET wrong_format=(%s) WHERE phash=(%s) AND sub_name=(%s) """
-            cursor.execute(query, (status, phash, table_name))
+            query = """UPDATE my_app_redditpost SET wrong_format=(%s) WHERE phash=(%s) """
+            cursor.execute(query, (status, phash))
 
 
-def set_img_source_link_by_phash(conn, table_name: str, phash: str, source_link: str):
+def set_img_source_link_by_phash(conn, phash: str, source_link: str):
     with conn:
         with conn.cursor() as cursor:
-            query = """UPDATE my_app_redditpost SET source_link=(%s) WHERE phash=(%s) AND sub_name=(%s) """
-            cursor.execute(query, (source_link, phash, table_name))
+            query = """UPDATE my_app_redditpost SET source_link=(%s) WHERE phash=(%s) """
+            cursor.execute(query, (source_link, phash))
 
 
-def set_visible_tags_by_phash(conn, table_name: str, phash: str, visible_tags: list):
+def set_visible_tags_by_phash(conn, phash: str, visible_tags: list):
     with conn:
         with conn.cursor() as cursor:
-            query = """UPDATE my_app_redditpost SET visible_tags=(%s) WHERE phash=(%s) AND sub_name=(%s) """
-            cursor.execute(query, (visible_tags, phash, table_name))
+            query = """UPDATE my_app_redditpost SET visible_tags=(%s) WHERE phash=(%s) """
+            cursor.execute(query, (visible_tags, phash))
 
 
 def set_invisible_tags_by_phash(
-    conn, table_name: str, phash: str, invisible_tags: list
+    conn, phash: str, invisible_tags: list
 ):
     with conn:
         with conn.cursor() as cursor:
-            query = """UPDATE my_app_redditpost SET invisible_tags=(%s) WHERE phash=(%s) AND sub_name=(%s) """
-            cursor.execute(query, (invisible_tags, phash, table_name))
+            query = """UPDATE my_app_redditpost SET invisible_tags=(%s) WHERE phash=(%s) """
+            cursor.execute(query, (invisible_tags, phash))
 
 
-def set_mal_id_by_phash(conn, table_name: str, phash: str, mal_id: int):
+def set_mal_id_by_phash(conn, phash: str, mal_id: int):
     with conn:
         with conn.cursor() as cursor:
-            query = """UPDATE my_app_redditpost SET mal_id=(%s) WHERE phash=(%s) AND sub_name=(%s) """
-            cursor.execute(query, (mal_id, phash, table_name))
+            query = """UPDATE my_app_redditpost SET mal_id=(%s) WHERE phash=(%s) """
+            cursor.execute(query, (mal_id, phash))
 
 
 def get_approved_original_posts(conn):
