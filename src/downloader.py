@@ -48,7 +48,7 @@ class RedditPost:
 
 def get_reddit_post_data(cursor, limit: int):
     # TODO get safe subs from server
-    query = f"""EXPLAIN ANALYZE SELECT post_id, author, created_utc, title, url, phash, sub_name FROM my_app_redditpost 
+    query = f"""SELECT post_id, author, created_utc, title, url, phash, sub_name FROM my_app_redditpost 
               WHERE selected IS NOT FALSE
               AND selected IS NOT TRUE
               AND wrong_format IS FALSE
