@@ -50,7 +50,7 @@ def get_reddit_post_data(cursor, limit: int):
     # TODO get safe subs from server
     query = f"""SELECT post_id, author, created_utc, title, url, phash, sub_name FROM my_app_redditpost 
               WHERE wrong_format IS FALSE
-              AND selected IS NULL
+              AND selected IS NOT FALSE
               AND dislike IS NULL
               AND sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape')
               AND phash NOT IN (SELECT phash FROM my_app_vkpost)
@@ -223,7 +223,7 @@ def main():
         print("Enough files")
     else:
         print("Downloading more")
-        download_more(1)
+        download_more(5)
 
 
 if __name__ == "__main__":
