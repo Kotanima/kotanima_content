@@ -49,11 +49,11 @@ class RedditPost:
 def get_reddit_post_data(cursor, limit: int):
     # TODO get safe subs from server
     query = f"""SELECT post_id, author, created_utc, title, url, phash, sub_name FROM my_app_redditpost 
-              WHERE wrong_format IS FALSE
-              AND selected IS NOT FALSE
-              AND dislike IS NULL
-              AND sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape')
+              WHERE sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape')
               AND phash NOT IN (SELECT phash FROM my_app_vkpost)
+              AND phash NOT IN (SELECT phash FROM my_app_redditpost where selected=false)
+              AND wrong_format=false
+              AND selected is NULL
               ORDER BY created_utc DESC
               LIMIT {limit}"""
 
