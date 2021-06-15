@@ -19,7 +19,7 @@ import psaw
 import psycopg2
 from dataclasses import dataclass
 
-load_dotenv(find_dotenv(raise_error_if_not_found=True))
+load_dotenv(find_dotenv(filename="env-local", raise_error_if_not_found=True))
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True  # else OsError
 
@@ -52,12 +52,31 @@ def get_reddit_post_data(cursor, limit: int):
               ORDER BY created_utc DESC
               LIMIT {limit}"""
 
+    query = f"""SELECT post_id, author, created_utc, title, url, phash, sub_name FROM my_app_redditpost 
+              WHERE phash NOT IN (SELECT phash FROM my_app_vkpost)
+              AND sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape')
+              AND wrong_format=false
+              AND selected is NULL
+              ORDER BY created_utc DESC"""
+
+    query = """SELECT  post_id, author, created_utc, title, url, a.phash, sub_name
+                FROM    my_app_redditpost a
+                        LEFT JOIN my_app_vkpost 
+                            ON my_app_vkpost.phash = a.phash
+                WHERE   my_app_vkpost.phash IS NULL
+                AND sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape')
+              AND wrong_format=false
+              AND selected is NULL
+              ORDER BY created_utc DESC
+                """
+
     try:
         cursor.execute(query)
     except psycopg2.errors.ProtocolViolation as exc:
         print(f"DB error: {exc}")
         return
     data = cursor.fetchall()
+    print(len(data))
     return data
 
 
@@ -163,6 +182,7 @@ def download_more(amount):
         with connection.cursor() as cursor:
             try:
                 posts = get_reddit_post_data(cursor, amount)
+                return
             except (
                 psycopg2.InterfaceError,
                 psycopg2.errors.ProtocolViolation,
