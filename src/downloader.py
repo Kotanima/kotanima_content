@@ -76,7 +76,6 @@ def get_reddit_post_data(cursor, limit: int):
         print(f"DB error: {exc}")
         return
     data = cursor.fetchall()
-    print(len(data))
     return data
 
 
@@ -182,7 +181,6 @@ def download_more(amount):
         with connection.cursor() as cursor:
             try:
                 posts = get_reddit_post_data(cursor, amount)
-                return
             except (
                 psycopg2.InterfaceError,
                 psycopg2.errors.ProtocolViolation,
