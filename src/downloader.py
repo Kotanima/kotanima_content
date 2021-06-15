@@ -59,7 +59,7 @@ def get_reddit_post_data(cursor, limit: int):
               AND selected is NULL
               ORDER BY created_utc DESC"""
 
-    query = """SELECT  post_id, author, created_utc, title, url, a.phash, sub_name
+    query = f"""SELECT  post_id, author, created_utc, title, url, a.phash, sub_name
                 FROM    my_app_redditpost a
                         LEFT JOIN my_app_vkpost 
                             ON my_app_vkpost.phash = a.phash
