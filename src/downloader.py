@@ -68,7 +68,7 @@ def get_reddit_post_data(cursor, limit: int):
               AND wrong_format=false
               AND selected is NULL
               ORDER BY created_utc DESC
-                """
+              LIMIT {limit}"""
 
     try:
         cursor.execute(query)
