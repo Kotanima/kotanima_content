@@ -19,7 +19,7 @@ import psaw
 import psycopg2
 from dataclasses import dataclass
 
-load_dotenv(find_dotenv(filename="env-local",raise_error_if_not_found=True))
+load_dotenv(find_dotenv(raise_error_if_not_found=True))
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True  # else OsError
 
