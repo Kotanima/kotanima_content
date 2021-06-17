@@ -107,9 +107,10 @@ def main():
 
     scheduler = VkScheduler()
 
-    while scheduler.get_postponed_posts_amount() <= 75:
+    while scheduler.get_postponed_posts_amount() <= 100:
         scheduler.make_original_post()
         scheduler.make_anime_post(random_post=False)
+        scheduler.make_anime_post(random_post=True)
         scheduler.make_anime_post(random_post=True)
 
 
