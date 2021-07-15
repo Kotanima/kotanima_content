@@ -65,13 +65,16 @@ def get_reddit_post_data(cursor, limit: int):
               LIMIT {limit}"""
 
     query = f"""SELECT post_id, author, created_utc, title, url, phash, sub_name FROM my_app_redditpost 
-              WHERE phash NOT IN (SELECT phash FROM my_app_vkpost)
-              AND selected IS NULL
+              WHERE selected IS NULL
+              AND phash NOT IN (SELECT phash FROM my_app_vkpost)
               AND sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape')
               AND wrong_format IS NOT TRUE
               AND dislike IS NOT TRUE
               ORDER BY created_utc DESC
               LIMIT {limit}"""
+
+
+    print(cursor.mogrify(query))
 
     try:
         cursor.execute(query)
