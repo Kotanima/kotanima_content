@@ -71,12 +71,12 @@ def get_reddit_post_data(cursor, limit: int):
               AND (wrong_format IS NOT TRUE)
               AND (dislike IS NOT TRUE)
               ORDER BY created_utc DESC
-              LIMIT {limit}"""
+              LIMIT (%s)"""
 
 
 
     try:
-        cursor.execute(query)
+        cursor.execute(query,(limit,))
     except psycopg2.errors.ProtocolViolation as exc:
         print(f"DB error: {exc}")
         return
