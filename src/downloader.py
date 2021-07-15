@@ -65,10 +65,9 @@ def get_reddit_post_data(cursor, limit: int):
                             ON my_app_vkpost.phash = a.phash
                 WHERE   my_app_vkpost.phash IS NULL
                 AND sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape')
-              AND wrong_format=false
+              AND wrong_format!=true
               AND dislike!=true
               AND selected IS NULL
-              and selected!=false
               ORDER BY created_utc DESC
               LIMIT {limit}"""
 
@@ -131,6 +130,7 @@ def optimize_image(file_path: str):
             return False
 
     except subprocess.CalledProcessError:
+        print("Couldnt optimize file")
         return False
 
     return True
