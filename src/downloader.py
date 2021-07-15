@@ -68,6 +68,7 @@ def get_reddit_post_data(cursor, limit: int):
               AND wrong_format=false
               AND dislike!=true
               AND selected IS NULL
+              and selected!=false
               ORDER BY created_utc DESC
               LIMIT {limit}"""
 
