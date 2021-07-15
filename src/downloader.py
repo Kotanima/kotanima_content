@@ -65,8 +65,8 @@ def get_reddit_post_data(cursor, limit: int):
                             ON my_app_vkpost.phash = a.phash
                 WHERE   my_app_vkpost.phash IS NULL
                 AND sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape')
-              AND wrong_format!=true
-              AND dislike!=true
+              AND wrong_format IS NOT TRUE
+              AND dislike IS NOT TRUE
               AND selected IS NULL
               ORDER BY created_utc DESC
               LIMIT {limit}"""
