@@ -6,19 +6,19 @@ from pathlib import Path
 from typing import Optional
 
 from dotenv import find_dotenv, load_dotenv
-from PIL import Image, ImageFile
+from PIL import ImageFile
 
-from image_similarity import generate_hist_cache
 from postgres import (
     connect_to_db,
     get_disliked_posts,
-    set_selected_status_by_phash,
+    set_downloaded_status_by_phash,
     set_wrong_format_status_by_phash,
 )
-import psaw
+
 import psycopg2
 from dataclasses import dataclass
 
+# load configuration
 load_dotenv(find_dotenv(raise_error_if_not_found=True))
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True  # else OsError
@@ -28,7 +28,9 @@ MEGABYTE = 1000000
 GIGABYTE = 1000000000
 
 STATIC_FOLDER_PATH = os.getenv("STATIC_FOLDER_PATH")
-FOLDER_SIZE_LIMIT = 5 * GIGABYTE
+
+# stop downloading files when it gets to the size limit
+FOLDER_SIZE_LIMIT = 5 * GIGABYTE 
 
 
 @dataclass
@@ -43,37 +45,15 @@ class RedditPost:
 
 
 def get_reddit_post_data(cursor, limit: int):
-    # TODO get safe subs from server
-
     query = f"""SELECT post_id, author, created_utc, title, url, phash, sub_name FROM my_app_redditpost 
-              WHERE phash NOT IN (SELECT phash FROM my_app_vkpost)
-              AND sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape')
-              AND wrong_format=false
-              AND selected is NULL
-              ORDER BY created_utc DESC"""
-
-    query = f"""SELECT  post_id, author, created_utc, title, url, a.phash, sub_name
-                FROM    my_app_redditpost a
-                        LEFT JOIN my_app_vkpost 
-                            ON my_app_vkpost.phash = a.phash
-                WHERE   my_app_vkpost.phash IS NULL
+                WHERE (phash NOT IN (SELECT phash FROM my_app_vkpost))
                 AND sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape')
-              AND wrong_format IS NOT TRUE
-              AND dislike IS NOT TRUE
-              AND selected IS NULL
-              ORDER BY created_utc DESC
-              LIMIT {limit}"""
-
-    query = f"""SELECT post_id, author, created_utc, title, url, phash, sub_name FROM my_app_redditpost 
-              WHERE selected IS NOT DISTINCT FROM NULL
-              AND (phash NOT IN (SELECT phash FROM my_app_vkpost))
-              AND (sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape'))
-              AND (wrong_format IS NOT TRUE)
-              AND (dislike IS NOT TRUE)
-              ORDER BY created_utc DESC
-              LIMIT (%s)"""
-
-
+                AND is_downloaded=false
+                AND is_checked=false
+                AND wrong_format!=true
+                AND is_disliked!=true
+                ORDER BY created_utc DESC
+                LIMIT (%s)"""
 
     try:
         cursor.execute(query,(limit,))
@@ -124,7 +104,17 @@ def download_pic_from_url(url: str, folder: str, limit: int = 1) -> bool:
     return True
 
 
-def optimize_image(file_path: str):
+def optimize_image(file_path: str) -> bool:
+    """Lower image size with slight quality drop
+
+    Args:
+        file_path (str): path to image
+
+    Returns:
+        bool: false if error occured, true if no errors
+    """
+
+
     try:
         result = subprocess.check_output(
             ["optimize-images", "-rt", "-ca", "-fd", file_path]
@@ -140,7 +130,7 @@ def optimize_image(file_path: str):
     return True
 
 
-def rename_latest_file_in_folder(folder: str, new_filename: str):
+def rename_latest_file_in_folder(folder: str, new_filename: str) -> Path:
     """Gallery-dl loads images with random names, rename the latest downloaded one
     to {new_filename} + {.ext}
 
@@ -209,7 +199,7 @@ def download_more(amount):
 
         optimize_image(file_path)
         # mark as selected in db
-        set_selected_status_by_phash(connection, status=False, phash=post.phash)
+        set_downloaded_status_by_phash(connection, status=True, phash=post.phash)
 
     if connection:
         connection.close()
@@ -221,7 +211,7 @@ def delete_disliked_posts():
     disliked_posts = get_disliked_posts(conn)
     for post in disliked_posts:
         (sub_name, post_id, phash) = post
-        set_selected_status_by_phash(conn, status=None, phash=phash)
+        set_downloaded_status_by_phash(conn, status=False, phash=phash)
         filename = pathlib.Path(STATIC_FOLDER_PATH, f"{sub_name}_{post_id}.jpg")
 
         try:
@@ -234,9 +224,10 @@ def delete_disliked_posts():
 
 def main():
     folder_size = get_static_folder_size()
-    print(folder_size / (1024 * 1024))
+    print(folder_size / MEGABYTE)
 
     delete_disliked_posts()
+
     if folder_size > FOLDER_SIZE_LIMIT:
         print("Enough files")
     else:
