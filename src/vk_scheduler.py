@@ -25,12 +25,12 @@ from vk_helper import (
     post_photos_to_vk,
 )
 
-load_dotenv(find_dotenv())
+load_dotenv(find_dotenv(raise_error_if_not_found=True))
 
 
 STATIC_PATH = os.getenv("STATIC_FOLDER_PATH")
 
-DEBUG = False
+DEBUG = True
 
 
 class VkScheduler:
@@ -147,7 +147,7 @@ class VkPost:
         )
 
         self.similar_img_names = [
-            str(pathlib.Path(STATIC_PATH, img)) for img in similar_img_names
+            str(pathlib.Path(STATIC_PATH, img)) for img in self.similar_img_names
         ]
 
 
@@ -169,6 +169,9 @@ def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
         first_img_name = img_names[0]
     except (IndexError, TypeError) as e:
         return  # or not ?
+
+    if not first_img_name:
+        return
 
     similar_img_names = get_similar_imgs_by_histogram_correlation(
         first_img_name, img_names, CORRELATION_LIMIT=0.85, search_amount=2
