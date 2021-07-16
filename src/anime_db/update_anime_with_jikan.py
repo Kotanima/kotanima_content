@@ -1,4 +1,5 @@
 import json
+from re import DEBUG
 import time
 import os
 import jikanpy
@@ -8,10 +9,18 @@ from ..postgres import connect_to_db
 
 
 # python -m src.anime_db.update_anime_with_jikan
+
+DEBUG = False
+
 HOME_PATH = os.environ.get("HOME")
 PATH_TO_MAL_ID_CACHE = str(
     pathlib.Path(HOME_PATH, "mal-id-cache/cache/anime_cache.json")
 )
+
+if DEBUG:
+    PATH_TO_MAL_ID_CACHE = str(
+        pathlib.Path("C:\dev\mal-id-cache\cache/anime_cache.json")
+    )
 
 
 def get_all_ids_from_db(conn):

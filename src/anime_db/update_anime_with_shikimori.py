@@ -1,3 +1,4 @@
+import requests
 from shikimori_api import Shikimori
 import time
 from ..postgres import connect_to_db
@@ -48,7 +49,11 @@ def insert_synonyms(conn, one_synonym, anime_id):
 def query_shikimori(conn, mal_id, existing_synonyms):
     session = Shikimori()
     api = session.get_api()
-    res = api.anime(mal_id).GET()
+    try:
+        res = api.anime(mal_id).GET()
+    except requests.exceptions.HTTPError:
+        print(f"Http error for {mal_id=}")
+        return
     # pprint(res)
 
     try:
@@ -90,6 +95,6 @@ if __name__ == "__main__":
     print(len(res))
     for anime_id, exist_syn_list in res:
         print(anime_id)
-        # query_shikimori(conn, anime_id, exist_syn_list)
+        query_shikimori(conn, anime_id, exist_syn_list)
 
     conn.close()

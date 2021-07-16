@@ -5,6 +5,8 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
+import psycopg2
+from attr import attrib, attrs
 from dotenv import find_dotenv, load_dotenv
 from PIL import ImageFile
 
@@ -14,9 +16,6 @@ from postgres import (
     set_downloaded_status_by_phash,
     set_wrong_format_status_by_phash,
 )
-
-import psycopg2
-from dataclasses import dataclass
 
 # load configuration
 load_dotenv(find_dotenv(raise_error_if_not_found=True))
@@ -30,33 +29,48 @@ GIGABYTE = 1000000000
 STATIC_FOLDER_PATH = os.getenv("STATIC_FOLDER_PATH")
 
 # stop downloading files when it gets to the size limit
-FOLDER_SIZE_LIMIT = 5 * GIGABYTE 
+FOLDER_SIZE_LIMIT = 5 * GIGABYTE
 
 
-@dataclass
+@attrs
 class RedditPost:
-    post_id: int
-    author: str
-    created_utc: int
-    title: str
-    url: str
-    phash: str
-    sub_name: str
+    post_id: int = attrib()
+    author: str = attrib()
+    created_utc: int = attrib()
+    title: str = attrib()
+    url: str = attrib()
+    phash: str = attrib()
+    sub_name: str = attrib()
+    is_downladed : bool = attrib()
+
+    @classmethod
+    def from_db(cls, obj):
+        return cls(
+            obj.post_id,
+            obj.author,
+            obj.created_utc,
+            obj.title,
+            obj.url,
+            obj.phash,
+            obj.sub_name,
+            obj.is_downloaded
+        )
 
 
 def get_reddit_post_data(cursor, limit: int):
-    query = f"""SELECT post_id, author, created_utc, title, url, phash, sub_name FROM my_app_redditpost 
+    query = f"""SELECT post_id, author, created_utc, title, url, phash, sub_name, is_downloaded FROM my_app_redditpost 
                 WHERE (phash NOT IN (SELECT phash FROM my_app_vkpost))
-                AND sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape')
+                AND (phash NOT IN (SELECT DISTINCT phash FROM my_app_vkpost where is_disliked=true))
+                AND (sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape'))
                 AND is_downloaded=false
                 AND is_checked=false
-                AND wrong_format!=true
                 AND is_disliked!=true
+                AND wrong_format!=true
                 ORDER BY created_utc DESC
                 LIMIT (%s)"""
 
     try:
-        cursor.execute(query,(limit,))
+        cursor.execute(query, (limit,))
     except psycopg2.errors.ProtocolViolation as exc:
         print(f"DB error: {exc}")
         return
@@ -114,7 +128,6 @@ def optimize_image(file_path: str) -> bool:
         bool: false if error occured, true if no errors
     """
 
-
     try:
         result = subprocess.check_output(
             ["optimize-images", "-rt", "-ca", "-fd", file_path]
@@ -147,7 +160,10 @@ def rename_latest_file_in_folder(folder: str, new_filename: str) -> Path:
     old_ext = file_path.suffix
     old_path = Path(file_path).resolve().parent
     new_path = Path(old_path, new_filename + old_ext)
-    file_path.rename(new_path)
+    try:
+        file_path.rename(new_path)
+    except FileExistsError:
+        print("File already exists")
     return new_path
 
 
@@ -174,7 +190,7 @@ def download_more(amount):
     connection = connect_to_db()
 
     with connection:
-        with connection.cursor() as cursor:
+        with connection.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor) as cursor:
             try:
                 posts = get_reddit_post_data(cursor, amount)
             except (
@@ -184,25 +200,28 @@ def download_more(amount):
                 print("DB Connection error")
                 return
 
-    for post in posts:
-        post = RedditPost(*post)
-        print(f"Downloading: {post.url}")
-        did_load = download_pic_from_url(post.url, folder=STATIC_FOLDER_PATH, limit=1)
-        if not did_load:
-            print("Couldnt download file, with ", f"{post.url=}")
-            set_wrong_format_status_by_phash(connection, status=True, phash=post.phash)
-            continue
-        else:
-            file_path = rename_latest_file_in_folder(
-                STATIC_FOLDER_PATH, f"{post.sub_name}_{post.post_id}"
-            )
+    try:
+        for post in posts:
+            reddit_post = RedditPost.from_db(post)
+            print(f"Downloading: {post.url}")
+            did_load = download_pic_from_url(reddit_post.url, folder=STATIC_FOLDER_PATH, limit=1)
+            if not did_load:
+                print("Couldnt download file, with ", f"{reddit_post.url=}")
+                set_wrong_format_status_by_phash(connection, status=True, phash=reddit_post.phash)
+                continue
+            else:
+                file_path = rename_latest_file_in_folder(
+                    STATIC_FOLDER_PATH, f"{reddit_post.sub_name}_{reddit_post.post_id}"
+                )
 
-        optimize_image(file_path)
-        # mark as selected in db
-        set_downloaded_status_by_phash(connection, status=True, phash=post.phash)
+            optimize_image(file_path)
+            # mark as selected in db
+            set_downloaded_status_by_phash(connection, status=True, phash=reddit_post.phash)
 
-    if connection:
-        connection.close()
+    finally:
+        if connection:
+            connection.commit()
+            connection.close()
 
 
 def delete_disliked_posts():
@@ -211,7 +230,12 @@ def delete_disliked_posts():
     disliked_posts = get_disliked_posts(conn)
     for post in disliked_posts:
         (sub_name, post_id, phash) = post
-        set_downloaded_status_by_phash(conn, status=False, phash=phash)
+
+        # this is a spectacular failure. kotanima checker app would mark images
+        # as disliked, but not by phash, but individually
+        
+        # set_downloaded_status_by_phash(conn, status=False, phash=phash)
+
         filename = pathlib.Path(STATIC_FOLDER_PATH, f"{sub_name}_{post_id}.jpg")
 
         try:
@@ -219,6 +243,7 @@ def delete_disliked_posts():
         except Exception:
             pass
 
+    conn.commit()
     conn.close()
 
 

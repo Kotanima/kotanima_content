@@ -93,19 +93,14 @@ def get_tags_by_resolving_function_name(detected_obj):
     if func_name in JUST_USE_TITLE_FUNC_NAMES + JUST_USE_SYNONYM_TITLE_FUNC_NAMES:
         if russian_title:
             visible_tags.append(russian_title)
-            if title_english:
-                invisible_tags.append(title_english)
-            if title:
-                invisible_tags.append(title)
-            if franchise:
-                invisible_tags.append(franchise)
-
+            for arg in [title, title_english, franchise]:
+                if arg:
+                    invisible_tags.append(arg)
             invisible_tags = list(set(invisible_tags))
             return visible_tags, invisible_tags
 
         if column_name == "title_english":
             return [title_english], invisible_tags
-
         else:
             return [title], invisible_tags
 

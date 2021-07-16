@@ -3,15 +3,13 @@ import json
 import os
 from collections import namedtuple
 from random import randint
-from typing import Any
 
 import pytz
 import requests
 import vk_api
 from dotenv import find_dotenv, load_dotenv
-from typing import NamedTuple
 
-load_dotenv(find_dotenv())
+load_dotenv(find_dotenv(raise_error_if_not_found=True))
 
 # авторизация
 # https://vk.com/dev/authcode_flow_user

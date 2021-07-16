@@ -6,3 +6,5 @@ cache_dict.h5
 .env
 Backups/
 scrape_download/
+venv/
+2021-07-16-13-33-40.backup

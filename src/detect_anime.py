@@ -8,7 +8,7 @@ try:
 except ModuleNotFoundError:
     from src.postgres import connect_to_db
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 AnimeInfo = tuple[int, str, str, str, str]
@@ -469,7 +469,7 @@ def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
         if res:
             return res
 
-    # sometimes there are two titles split by comma, or slash or some other shit
+    # sometimes there are two titles split by comma, or slash
     try_again_chars = [",", "/", " x ", "-", ":"]
     for char in try_again_chars:
         if char in input_text and input_text.count(char) < 2:
