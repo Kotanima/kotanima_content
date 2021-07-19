@@ -17,9 +17,11 @@ from dotenv import find_dotenv, load_dotenv
 from PIL import Image, ImageFile
 from psaw import PushshiftAPI
 
+from src.gallery_dl_helper import download_pic_from_url
+
 ImageFile.LOAD_TRUNCATED_IMAGES = True  # else OsError
 
-load_dotenv(find_dotenv())
+load_dotenv(find_dotenv(raise_error_if_not_found=True))
 
 
 class PostSearchType(Enum):
@@ -36,7 +38,7 @@ def connect_to_postgres():
         port=int(os.environ.get("DB_PORT")),
         database=os.environ.get("DB_NAME"),
     )
-    connection.autocommit=True
+    connection.autocommit = True
     cursor = connection.cursor()
     return connection, cursor
 
@@ -93,46 +95,6 @@ def get_filename_from_subm(subm):
     return str(int(subm.created_utc)) + "_" + str(subm.id)
 
 
-def download_pic_from_url(url: str, folder: str, limit: int = 1) -> bool:
-    """
-
-    Args:
-        url (str): url to the picture
-        folder (str) : folder to download into
-        limit (int): when dealing with albums load only first N items
-
-    Returns:
-        bool: True if picture loaded
-    """
-    try:
-        result = subprocess.check_output(
-            [
-                "gallery-dl",
-                "--dest",
-                f"./{folder}/",
-                "--http-timeout",
-                "7",
-                "--sleep",
-                "1",
-                "--range",
-                f"{limit}",
-                "--filter",
-                "extension in ('jpg', 'png', 'jpeg', 'PNG', 'JPEG')",
-                "--config",
-                "../gallery-dl.conf",
-                f"{str(url)}",
-            ]
-        )
-
-        if len(result) == 0:
-            return False
-
-    except subprocess.CalledProcessError:
-        return False
-
-    return True
-
-
 def insert_pic_record(
     cursor,
     sub_name: str,
@@ -143,10 +105,9 @@ def insert_pic_record(
     created_utc: str,
     phash: str,
     wrong_format: bool,
-    selected: Optional[bool],
 ):
-    query = """INSERT INTO my_app_redditpost (sub_name, post_id, author, title, url, created_utc, phash, wrong_format, selected)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+    query = """INSERT INTO my_app_redditpost (sub_name, post_id, author, title, url, created_utc, phash, wrong_format)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
     cursor.execute(
         query,
         (
@@ -158,7 +119,6 @@ def insert_pic_record(
             created_utc,
             phash,
             wrong_format,
-            selected,
         ),
     )
 
@@ -228,7 +188,7 @@ class Scraper:
                     continue
 
                 did_load = download_pic_from_url(
-                    url=subm.url, folder=self.download_folder, limit=1
+                    url=subm.url, folder=self.download_folder
                 )
                 if did_load:
                     new_name = get_filename_from_subm(subm)
@@ -289,7 +249,7 @@ class Scraper:
                     continue
 
                 did_load = download_pic_from_url(
-                    url=subm.url, folder=self.download_folder, limit=1
+                    url=subm.url, folder=self.download_folder
                 )
                 if did_load:
                     new_name = get_filename_from_subm(subm)
@@ -367,7 +327,6 @@ def add_filtered_submissions_to_db(
                         created_utc=str(int(subm.created_utc)),
                         phash=img_hash,
                         wrong_format=wrong_format,
-                        selected=None,
                     )
 
                     inserted += 1
