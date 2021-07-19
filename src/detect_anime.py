@@ -11,23 +11,46 @@ except ModuleNotFoundError:
 from dataclasses import dataclass
 from typing import Optional
 
-AnimeInfo = tuple[int, str, str, str, str]
+
+@dataclass
+class AnimeInfo:
+    anime_id: int
+    # slug is short for slugified - the text that is
+    # stripped of diacritic symbols, invalid chars etc
+    slug_title_syn: list[str]
+    title_english: str
+    title_russian: str
+    franchise: str
 
 
 @dataclass
 class AnimeDetection:
     anime_info: AnimeInfo
-    func_name : str
+    func_name: str
+    # there are also some non-anime sources (games etc)
     is_from_anime: bool
     column: Optional[str] = None
 
     def __post_init__(self):
-        self.anime_id = self.anime_info[0]
+        self.anime_id: int = self.anime_info[0]
+        if not is_trusted_result(self.anime_id, self.func_name):
+            self.anime_info = None
+            self.func_name = None
+            self.is_from_anime = None
+            self.column = None
 
 
 def get_text_inside_brackets(text: str) -> list[str]:
-    # returns all text inside (multiple) brackets
-    # example: My fav anime picture [Sponge Bob Square Pants] -> returns only: Sponge Bob Square Pants
+
+    """example: My fav anime picture [Sponge Bob Square Pants] -> returns only: Sponge Bob Square Pants
+    note: if there are multiple brackets, all of them are parsed
+
+    Args:
+        text (str): input text with brackets
+
+    Returns:
+        list[str]: list of text inside (multiple) brackets
+    """
     square_brackets_pattern = r"\[(.*?)\]"
     round_brackets_pattern = r"\((.*?)\)"
 
@@ -67,7 +90,7 @@ def is_valid_url(url: str):
     return re.match(regex, url)
 
 
-def get_number_count_from_string(input_string: str):
+def get_number_count_from_string(input_string: str) -> int:
     return sum(c.isdigit() for c in input_string)
 
 
@@ -340,13 +363,7 @@ def deal_with_resolutions(input_string: str):
 #########################################################
 DIRECT_SEARCH_FUNCS: list = [text_is_equal_to_column, slug_text_is_equal_to_slug_column]
 
-LESS_ACCURATE_SEARCH_FUNCS: list = [
-    text_is_in_synonyms_array,
-    text_is_in_slugified_synonyms_array,
-    text_without_spaces_is_equal_to_title,
-    text_without_spaces_is_equal_to_title_english,
-    text_without_spaces_is_equal_to_franchise_column,
-    # inaccurate from now on
+VERY_INACCURATE_SEARCH_FUNCTIONS: list = [
     text_without_spaces_is_in_synonyms,
     text_is_substring_of_slug_title,
     text_is_substring_of_slug_title_english,
@@ -354,6 +371,16 @@ LESS_ACCURATE_SEARCH_FUNCS: list = [
     text_is_substring_of_slug_synonym_array,
     text_is_substring_of_franchise,
 ]
+
+INACCURATE_SEARCH_FUNCS: list = [
+    text_is_in_synonyms_array,
+    text_is_in_slugified_synonyms_array,
+    text_without_spaces_is_equal_to_title,
+    text_without_spaces_is_equal_to_title_english,
+    text_without_spaces_is_equal_to_franchise_column,
+] + VERY_INACCURATE_SEARCH_FUNCTIONS
+
+
 #########################################################
 # the functions below are used in other file
 # for judgement algorithm
@@ -387,22 +414,14 @@ MAYBE_USE_FRANCHISE: list = [
 
 # make sure the functions that are used for judgement algorithm
 # are the same ones used detection locally
-assert len(DIRECT_SEARCH_FUNCS + LESS_ACCURATE_SEARCH_FUNCS) == len(
+assert len(DIRECT_SEARCH_FUNCS + INACCURATE_SEARCH_FUNCS) == len(
     JUST_USE_TITLE + JUST_USE_SYNONYM_TITLE + JUST_USE_FRANCHISE + MAYBE_USE_FRANCHISE
 )
 
 
 def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
     """
-    0) Prepare text:
-        0.0) lowercase and strip leading and trailing whitespace
-        0.1) remove multiple whitespaces
-        0.2) solve [Sword Art Online, 1280×800]
-        0.3) idolm@@@ster
-        0.4) only numbers title - is garbage
-        0.5) replace &amp; with &
-        0.6)  daily idolmaster --> Daily iDOLM@STER #236
-
+    Sanitize input text.
     Then attempt to find anime, with methods ordered from highest accuracy to lowest
 
     """
@@ -428,35 +447,29 @@ def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
     input_text = " ".join(input_text.split())
 
     for table in ["non_anime", "anime"]:
-        # check direct equality to column
-        column_names = ["title", "title_english"]
-        for column in column_names:
+        for column in ["title", "title_english"]:
             for count, func in enumerate(DIRECT_SEARCH_FUNCS):
                 if anime_info := func(conn, table, column, input_text):
-                    # we need to store the function that found the anime
-                    func_name = DIRECT_SEARCH_FUNCS[count].__name__
-                    # we have 2 different tables with similar structure, we need to know where to look
                     detected_anime = AnimeDetection(
                         anime_info=anime_info[0],
-                        func_name=func_name,
+                        func_name=DIRECT_SEARCH_FUNCS[count].__name__,
                         is_from_anime=True if table == "anime" else False,
                         column=column,
                     )
 
                     return detected_anime
 
-    for table in ["non_anime", "anime"]:
-        for count, func in enumerate(LESS_ACCURATE_SEARCH_FUNCS):
-            func_name = LESS_ACCURATE_SEARCH_FUNCS[count].__name__
-            if anime_info := func(conn, table, input_text):
-                detected_anime = AnimeDetection(
-                    anime_info=anime_info[0],
-                    func_name=func_name,
-                    is_from_anime=True if table == "anime" else False,
-                )
+    for count, func in enumerate(INACCURATE_SEARCH_FUNCS):
+        if anime_info := func(conn, "anime", input_text):
+            detected_anime = AnimeDetection(
+                anime_info=anime_info[0],
+                func_name=INACCURATE_SEARCH_FUNCS[count].__name__,
+                is_from_anime=True,
+            )
 
-                return detected_anime
+            return detected_anime
 
+    # in case of failure, try replacing some common patterns and search again
     if "&" in input_text:
         input_text = input_text.replace("&", "and")
         res = detect_anime_from_string(conn, input_text)
@@ -489,12 +502,42 @@ def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
                 if res:
                     return res
 
-    return None
+
+def is_top_anime(anime_id: int):
+    conn = connect_to_db()
+    with conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT EXISTS(SELECT 1 FROM top_anime WHERE anime_id=(%s))",
+                (anime_id,),
+            )
+            data = cursor.fetchone()
+
+    conn.close()
+    return data[0]
+
+
+def is_trusted_result(anime_id: int, search_function_name: str) -> bool:
+    """If the result was acquired using an inaccurate search function
+    and it is not a top/popular anime it is probably wrong
+
+    Args:
+        anime_id (int): [description]
+        search_function_name (str): [description]
+
+    Returns:
+        [bool]: True if the result can be trusted
+    """
+    inaccurate_func_names = [x.__name__ for x in VERY_INACCURATE_SEARCH_FUNCTIONS]
+    if not is_top_anime(anime_id) and search_function_name in inaccurate_func_names:
+        return False
+
+    return True
 
 
 def main():
     conn = connect_to_db()
-    input_str = "Girl's Last Tour"
+    input_str = "LN"
     res = detect_anime_from_string(conn, input_str)
     print(res)
 

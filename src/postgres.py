@@ -98,10 +98,12 @@ def set_mal_id_by_phash(conn, phash: str, mal_id: int):
 
 def get_approved_original_posts(conn):
     with conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor) as cursor:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
             query = """SELECT post_id, sub_name, source_link, visible_tags, invisible_tags, phash
                     FROM my_app_redditpost 
                     WHERE is_downloaded=true
+                    AND (phash NOT IN (SELECT phash FROM my_app_vkpost))
+                    AND (phash NOT IN (SELECT DISTINCT phash FROM my_app_redditpost where is_disliked=true))
                     AND is_checked=true
                     AND is_disliked=false 
                     AND (mal_id=31687 OR mal_id IS NULL) 
@@ -114,13 +116,16 @@ def get_approved_original_posts(conn):
 
 def get_approved_anime_posts(conn, mal_id):
     with conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor) as cursor:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
             query = """SELECT post_id, sub_name, source_link, visible_tags, invisible_tags, phash
                     FROM my_app_redditpost  
                     WHERE mal_id=(%s) 
+                    AND (phash NOT IN (SELECT phash FROM my_app_vkpost))
+                    AND (phash NOT IN (SELECT DISTINCT phash FROM my_app_redditpost where is_disliked=true))
                     AND is_downloaded=true
                     AND is_checked=true
                     AND is_disliked=false 
+
                 """
             cursor.execute(query, (mal_id,))
             data = cursor.fetchall()
@@ -130,9 +135,11 @@ def get_approved_anime_posts(conn, mal_id):
 def get_all_approved_posts(conn):
     with conn:
         with conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor) as cursor:
-            query = """SELECT mal_id, title, post_id, author, sub_name, phash, source_link, visible_tags 
+            query = """SELECT mal_id, title, post_id, author, sub_name, phash, source_link, visible_tags, invisible_tags
                     FROM my_app_redditpost
                     WHERE is_downloaded=true 
+                    AND (phash NOT IN (SELECT phash FROM my_app_vkpost))
+                    AND (phash NOT IN (SELECT DISTINCT phash FROM my_app_redditpost where is_disliked=true))
                     AND is_checked=true
                     AND is_disliked=false 
                     AND phash IS NOT NULL"""
@@ -148,6 +155,8 @@ def aggregate_approved_mal_id_counts(conn):
                     OVER(PARTITION BY mal_id) AS id_count, mal_id 
                     FROM my_app_redditpost
                     WHERE is_downloaded=true
+                    AND (phash NOT IN (SELECT phash FROM my_app_vkpost))
+                    AND (phash NOT IN (SELECT DISTINCT phash FROM my_app_redditpost where is_disliked=true))
                     AND is_checked=true
                     AND is_disliked=false 
                     ORDER BY id_count desc"""

@@ -51,7 +51,7 @@ def get_tags_by_resolving_function_name(detected_obj):
     visible_tags = []
     invisible_tags = []
 
-    if not detected_obj:
+    if not detected_obj or not detected_obj.anime_info:
         return [DEFAULT_STRING], []
 
     (anime_id, title, title_english, russian_title, franchise) = detected_obj.anime_info
@@ -120,7 +120,7 @@ def get_tags_by_resolving_function_name(detected_obj):
     return DEFAULT_STRING, invisible_tags
 
 
-def convert_tags_to_vk_string(tag_list):
+def convert_tags_to_vk_string(tag_list : list[str]) -> list[str]:
     if not tag_list:
         return ""
     # nobody uses underscore in tags, replace it ..
@@ -130,7 +130,7 @@ def convert_tags_to_vk_string(tag_list):
     return vk_string
 
 
-def modify_daily_text(input_text):
+def modify_daily_text(input_text : str) -> str:
     if "daily" in input_text.lower() and "#" in input_text:
         pattern = re.compile("daily", re.IGNORECASE)
         input_text = pattern.sub("", input_text)
@@ -171,7 +171,7 @@ def get_mal_id_vis_and_invis_tags(conn, title: str):
         invis_tags = [tag for tag in invis_tags if tag not in vis_tags]
 
     # apply tagify tags (#cat/dog etc)
-    extra_tags = get_extra_tags(title)
+    extra_tags = get_extra_tags(conn, title)
 
     if extra_tags is not None:
         if invis_tags is not None:
@@ -188,9 +188,9 @@ def get_mal_id_vis_and_invis_tags(conn, title: str):
 def main():
     conn = connect_to_db()
 
-    title = "Keeping warm neko [Original]"
+    title = "Keeping warm neko [LN]"
 
-    anime_id, vis_tags, invis_tags = get_mal_id_vis_and_invis_tags(conn, title)
+    _, vis_tags, invis_tags = get_mal_id_vis_and_invis_tags(conn, title)
     vis_string = convert_tags_to_vk_string(vis_tags)
     invis_string = convert_tags_to_vk_string(invis_tags)
     print(f"{vis_string=}")

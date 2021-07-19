@@ -1,10 +1,15 @@
-import os
-from PIL import Image
 import glob
+import os
+from typing import Optional
+
 import cv2
-import matplotlib
-import pickle
 import h5py
+import matplotlib
+from dotenv import find_dotenv, load_dotenv
+from PIL import Image
+
+load_dotenv(find_dotenv(raise_error_if_not_found=True))
+STATIC_PATH = os.getenv("STATIC_FOLDER_PATH")
 
 
 matplotlib.use("Agg")
@@ -23,38 +28,62 @@ def get_hist_for_file(img_path):
     return hist
 
 
+import pathlib
+
+
 def generate_hist_cache():
     static_folder = "./static/*.jpg"
     static_images = glob.glob(static_folder)
 
     with h5py.File("cache_dict.h5", "a", libver="latest") as f:
         for img_path in static_images:
-            hist = get_hist_for_file(img_path)
+            p = pathlib.Path(img_path)
+            file_name = p.name
+            hist = get_hist_for_file(str(img_path))
             if hist is not None:
                 try:
                     f.create_dataset(
-                        "dict/" + str(img_path), data=hist, compression="gzip"
+                        "dict/" + str(file_name), data=hist, compression="gzip"
                     )
                 except ValueError:  # already exists
                     pass
             else:  # broken file, get rid of it
                 try:
                     os.remove(img_path)
-                except Exception:
+                except OSError:
                     print(f"Couldnt delete file {img_path}")
 
 
 def get_similar_imgs_by_histogram_correlation(
-    first_img_name: str, img_names: list, CORRELATION_LIMIT=0.85, search_amount=2
-):
+    img_names: list, CORRELATION_LIMIT=0.85, search_amount=2
+) -> Optional[list[str]]:
+    """Takes first image in img_names list and finds similar ones.
+
+    Args:
+        img_names (list): [description]
+        CORRELATION_LIMIT (float, optional): [description]. Defaults to 0.85.
+        search_amount (int, optional): [description]. Defaults to 2.
+
+    Returns:
+        list[str]: list that includes base image and best matches
+    """
+    try:
+        first_img_name = img_names[0]
+    except IndexError:
+        raise FileNotFoundError
+
+    first_img_path = str(pathlib.Path(STATIC_PATH, first_img_name))
+    if not os.path.isfile(first_img_path):
+        raise FileNotFoundError
+
     with h5py.File("cache_dict.h5", "r") as h5f:
-        h5_arr = h5f["dict"]["static"]
+        h5_arr = h5f["dict"]
         try:
             target_hist = h5_arr[first_img_name][:]
         except KeyError:
-            target_hist = get_hist_for_file(first_img_name)
+            target_hist = get_hist_for_file(first_img_path)
             if target_hist is None:
-                print(f"Couldnt calc hist for {first_img_name}")
+                print(f"Couldnt calc hist for {first_img_path}")
                 return
 
         result_images = []
@@ -64,10 +93,11 @@ def get_similar_imgs_by_histogram_correlation(
             print("First img name was not found in img_names")
 
         for img_name in img_names:
+            img_path = str(pathlib.Path(STATIC_PATH, img_name))
             try:
                 current_hist = h5_arr[img_name][:]
             except KeyError:
-                current_hist = get_hist_for_file(img_name)
+                current_hist = get_hist_for_file(img_path)
 
             try:
                 diff = cv2.compareHist(target_hist, current_hist, cv2.HISTCMP_CORREL)
@@ -78,9 +108,9 @@ def get_similar_imgs_by_histogram_correlation(
             if diff > CORRELATION_LIMIT:
                 result_images.append(img_name)
                 if len(result_images) == search_amount:
-                    return result_images
+                    return [first_img_name] + result_images
 
-        return result_images
+        return [first_img_name] + result_images
 
 
 if __name__ == "__main__":
@@ -91,7 +121,7 @@ if __name__ == "__main__":
     first_path = str(imgs_in_static_folder[1])
     print(first_path)
 
-    res = get_similar_imgs_by_histogram_correlation(first_path, imgs_in_static_folder)
+    res = get_similar_imgs_by_histogram_correlation(imgs_in_static_folder)
     print(res)
     if res:
         with Image.open(first_path) as img:

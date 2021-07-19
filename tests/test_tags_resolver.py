@@ -18,7 +18,6 @@ def setup_database():
     "title,res_anime,res_char, res_invis_tags",
     [
         ("Smiling Miku [Vocaloid]", "Vocaloid", "Hatsune_Miku", None),
-        ("Smiling Miku [Vocaloid]", "Vocaloid", "Hatsune_Miku", None),
         ("Keeping warm neko [Original]", "AnimeArt", None, None),
         (
             "Degeso~! (Ika Musume or Shinryaku! Ika Musume)",

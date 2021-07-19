@@ -6,7 +6,7 @@ from ..postgres import connect_to_db
 # python -m src.anime_db.update_anime_with_shikimori
 
 
-def get_ids_syn(conn):
+def get_anime_ids_and_title_synonyms_list(conn):
     with conn:
         with conn.cursor() as cursor:
             cursor.execute(
@@ -19,7 +19,8 @@ def get_ids_syn(conn):
     with conn:
         with conn.cursor() as cursor:
             cursor.execute(
-                f"SELECT anime_id,title_synonyms FROM anime WHERE title_russian IS NULL AND anime_id>{max_ind} ORDER BY anime_id"
+                f"SELECT anime_id,title_synonyms FROM anime WHERE title_russian IS NULL AND anime_id>(%s) ORDER BY anime_id",
+                (max_ind,),
             )
             data = cursor.fetchall()
             return data
@@ -50,26 +51,15 @@ def query_shikimori(conn, mal_id, existing_synonyms):
     session = Shikimori()
     api = session.get_api()
     try:
-        res = api.anime(mal_id).GET()
+        api_response = api.anime(mal_id).GET()
     except requests.exceptions.HTTPError:
         print(f"Http error for {mal_id=}")
         return
-    # pprint(res)
 
-    try:
-        russian_title = res["russian"]
-        print(russian_title)
-    except KeyError:
-        pass
-    try:
-        synonyms = res["synonyms"]
-    except KeyError:
-        pass
-
-    try:
-        franchise = res["franchise"]
-    except KeyError:
-        pass
+    russian_title = api_response.get("russian")
+    print(russian_title)
+    synonyms = api_response.get("synonyms")
+    franchise = api_response.get("franchise")
 
     if franchise:
         insert_franchise(conn, franchise, mal_id)
@@ -91,9 +81,9 @@ def query_shikimori(conn, mal_id, existing_synonyms):
 
 if __name__ == "__main__":
     conn = connect_to_db()
-    res = get_ids_syn(conn)
-    print(len(res))
-    for anime_id, exist_syn_list in res:
+    anime_info = get_anime_ids_and_title_synonyms_list(conn)
+    print(len(anime_info))
+    for anime_id, exist_syn_list in anime_info:
         print(anime_id)
         query_shikimori(conn, anime_id, exist_syn_list)
 

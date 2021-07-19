@@ -78,7 +78,7 @@ def insanity_checks(func):
     def wrapper(*args, **kwargs):
         res = func(*args, **kwargs)
         if res:  # not empty
-            if any(text in res for text in ["cdn", "saucenao", "reddit"]):
+            if any(text in res for text in ["cdn", "saucenao", "reddit", "youtube", "imgur"]):
                 return None
             if res.startswith("https://www.pixiv.net/en/artworks/"):
                 return res[0:42]

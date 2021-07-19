@@ -1,22 +1,27 @@
 import os
 import pathlib
 import random
+from collections import namedtuple
 from itertools import cycle
 
+from cv2 import data
+import attr
 from dotenv import find_dotenv, load_dotenv
+from h5py._hl.files import File
 
 from add_metadata import add_metadata_to_approved_posts
 from image_similarity import (
     generate_hist_cache,
     get_similar_imgs_by_histogram_correlation,
 )
+from models import IdentifiedRedditPost, RedditPost
 from postgres import (
     aggregate_approved_mal_id_counts,
     connect_to_db,
     get_approved_anime_posts,
     get_approved_original_posts,
     insert_vk_record,
-    set_selected_status_by_phash,
+    set_downloaded_status_by_phash,
 )
 from tags_resolver import convert_tags_to_vk_string
 from vk_helper import (
@@ -26,27 +31,26 @@ from vk_helper import (
 )
 
 load_dotenv(find_dotenv(raise_error_if_not_found=True))
-
-
 STATIC_PATH = os.getenv("STATIC_FOLDER_PATH")
 
-DEBUG = True
+DEBUG = False
+
+
+def get_owner_id() -> int:
+    if DEBUG:
+        return int(os.environ.get("VK_KROTKADZIMA_OWNER_ID"))
+    else:
+        return int(os.environ.get("VK_KOTANIMA_OWNER_ID"))
 
 
 class VkScheduler:
     def __init__(self):
-        self._setup_owner_id()
+        self._owner_id = get_owner_id()
         self._set_mal_ids_from_db()
 
         vk_info = get_latest_post_date_and_total_post_count(self._owner_id)
         self._postponed_posts_amount = vk_info.post_count or 0
         self._last_postponed_time = vk_info.last_postponed_time or 0
-
-    def _setup_owner_id(self):
-        if DEBUG:
-            self._owner_id = int(os.environ.get("VK_KROTKADZIMA_OWNER_ID"))
-        else:
-            self._owner_id = int(os.environ.get("VK_KOTANIMA_OWNER_ID"))
 
     def _set_mal_ids_from_db(self):
         conn = connect_to_db()
@@ -66,35 +70,67 @@ class VkScheduler:
         self._last_postponed_time = last_post_date
         return last_post_date
 
-    def make_original_post(self):
-        conn = connect_to_db()
-        self._original_posts = get_approved_original_posts(conn)
-        conn.close()
+    def make_original_post(self) -> bool:
+        """[summary]
 
-        generate_vk_post(
-            self._owner_id, self._get_next_post_time(), self._original_posts
+        Returns:
+            bool: True, if no more original posts left
+        """
+        conn = connect_to_db()
+        original_posts = get_approved_original_posts(conn)
+        conn.close()
+        if not original_posts:
+            raise NothingToPostError
+
+        original_posts = [
+            IdentifiedRedditPost.from_dict(post) for post in original_posts
+        ]
+
+        vk_post = VkPost(
+            owner_id=self._owner_id,
+            last_post_date=self._get_next_post_time(),
+            reddit_posts=original_posts,
         )
+        vk_post.upload()
+
         self._postponed_posts_amount += 1
 
-    def make_anime_post(self, random_post=False):
-        # select random or next most popular myanimelist id and post to vk
+    def make_anime_post(self, random_post=False) -> bool:
+        """select random or next most popular myanimelist id and post to vk
+        Args:
+            random_post (bool, optional): [description]. Defaults to False.
+
+        Returns:
+            bool: True, if no anime posts left
+        """
+        #
         if random_post:
             try:
                 mal_id = random.choice(self._aggregated_ids).mal_id
             except IndexError:
                 print("No approved anime posts left")
-                return False
+                raise NothingToPostError
         else:
             try:
                 mal_id = next(self._aggregated_ids_cycler).mal_id
             except StopIteration:
                 print("No approved anime posts left")
-                return False
+                raise NothingToPostError
 
         conn = connect_to_db()
-        posts = get_approved_anime_posts(conn, mal_id=mal_id)
+        anime_posts = get_approved_anime_posts(conn, mal_id=mal_id)
         conn.close()
-        generate_vk_post(self._owner_id, self._get_next_post_time(), posts)
+        
+        if not anime_posts:
+            return False
+        anime_posts = [IdentifiedRedditPost.from_dict(post) for post in anime_posts]
+
+        vk_post = VkPost(
+            owner_id=self._owner_id,
+            last_post_date=self._get_next_post_time(),
+            reddit_posts=anime_posts,
+        )
+        vk_post.upload()
         self._postponed_posts_amount += 1
 
     def get_postponed_posts_amount(self):
@@ -114,175 +150,160 @@ def main():
         scheduler.make_anime_post(random_post=True)
 
 
+class NothingToPostError(Exception):
+    pass
+
+
 class VkPost:
-    def __init__(self, owner_id, last_post_date, reddit_posts):
-        self.owner_id = owner_id
-        self.last_post_date = last_post_date
-        self.reddit_posts = reddit_posts
+    def __init__(
+        self,
+        owner_id: int,
+        last_post_date: int,
+        reddit_posts: list[IdentifiedRedditPost],
+    ):
+        # 1) select first reddit post
+        # 2) find similar images to it
+        # 3) set main display message text
+        # 4) set individual images hidden text
+        # 5) upload to vk
 
-        self.post_data_img_path_dict = {}
-        self.img_names: list[str] = []
-        self.phash_list: list[str] = []  # so we can add these to vk_table later
-        self.sub_name_list: list[str] = []
-
-        self.similar_img_names = []
-
-        self.init_post_data_dict()
-        self.init_similar_images()
-
-    def init_post_data_dict(self):
-        for post in self.reddit_posts:
-            img_name = f"{post.sub_name}_{post.post_id}.jpg"
-            self.img_names.append(img_name)
-            self.post_data_img_path_dict[img_name] = post
+        self.owner_id: int = owner_id
+        self.last_post_date: int = last_post_date
+        self.reddit_posts: list[IdentifiedRedditPost] = reddit_posts
 
         try:
-            self.first_img_name = self.img_names[0]
-        except (IndexError, TypeError) as e:
-            return False  # or not ?
+            self.similar_posts = self.get_similar_looking_posts()
+        except FileNotFoundError:
+            try:
+                self.reddit_posts[0]
+            except IndexError:
+                raise NothingToPostError
 
-    def init_similar_images(self):
-        self.similar_img_names = get_similar_imgs_by_histogram_correlation(
-            self.first_img_name, self.img_names, CORRELATION_LIMIT=0.85, search_amount=2
-        )
+            conn = connect_to_db()
+            set_downloaded_status_by_phash(
+                conn, status=False, phash=self.reddit_posts[0].phash
+            )
+            conn.close()
+            return
 
-        self.similar_img_names = [
-            str(pathlib.Path(STATIC_PATH, img)) for img in self.similar_img_names
+    def upload(self):
+        try:
+            main_post_message = self.get_main_post_message(self.similar_posts)
+        except AttributeError:
+            print("No file")
+            raise FileNotFoundError
+
+        hidden_messages = self.get_list_of_hidden_messages(self.similar_posts)
+
+        similar_img_paths = [
+            str(pathlib.Path(STATIC_PATH, post.get_image_name()))
+            for post in self.similar_posts
+        ]
+        try:
+            post_photos_to_vk(
+                OWNER_ID=self.owner_id,
+                image_list=similar_img_paths,
+                text=main_post_message,
+                source_link=self.reddit_posts[0].source_link,
+                hidden_text_list=hidden_messages,
+                delay=self.last_post_date,
+            )
+        except Exception as e:
+            raise Exception("Failed to post to vk") from e
+
+        if not DEBUG:
+            self.mark_posts_as_uploaded()
+            self.delete_images_from_disk()
+
+    def mark_posts_as_uploaded(self):
+        # add to vk_post table
+        conn = connect_to_db()
+        for post in self.similar_posts:
+            insert_vk_record(conn, self.last_post_date, post.phash)
+            set_downloaded_status_by_phash(conn, status=False, phash=post.phash)
+
+        if conn:
+            conn.close()
+
+    def delete_images_from_disk(self):
+        similar_img_paths = [
+            str(pathlib.Path(STATIC_PATH, post.get_image_name()))
+            for post in self.similar_posts
         ]
 
+        for path in similar_img_paths:
+            try:
+                os.remove(path)
+            except OSError:
+                print(f"Couldnt delete file {path}")
+                pass
 
-def generate_vk_post(OWNER_ID, last_post_date, reddit_posts):
-    """Select first image from post, find similar ones
-    Add tags to them, post to vk
-    """
-    post_data_img_path_dict = {}
-    img_names = []
-    phash_list = []  # so we can add these to vk_table later
-    sub_name_list = []
+    def get_main_post_message(self, filtered_reddit_posts: list[IdentifiedRedditPost]):
+        if not filtered_reddit_posts:
+            return
 
-    for post in reddit_posts:
-        img_name = f"{post.sub_name}_{post.post_id}.jpg"
-        img_names.append(img_name)
-        post_data_img_path_dict[img_name] = post
+        if len(filtered_reddit_posts) == 0:
+            return ""
 
-    try:
-        first_img_name = img_names[0]
-    except (IndexError, TypeError) as e:
-        return  # or not ?
+        elif len(filtered_reddit_posts) == 1:
+            only_post = filtered_reddit_posts[0]
+            return convert_tags_to_vk_string(only_post.visible_tags)
 
-    if not first_img_name:
-        return
-
-    similar_img_names = get_similar_imgs_by_histogram_correlation(
-        first_img_name, img_names, CORRELATION_LIMIT=0.85, search_amount=2
-    )
-
-    res_img_paths = []
-    for img in [first_img_name] + similar_img_names:
-        img_path = pathlib.Path(STATIC_PATH, img)
-        res_img_paths.append(str(img_path))
-
-    first_obj = post_data_img_path_dict[first_img_name]
-    (_, sub_name, source_link, visible_tags, invisible_tags, phash) = first_obj
-    phash_list.append(phash)
-    sub_name_list.append(sub_name)
-
-    total_tag_count = 0  # we need to make sure there is less than 10 tags in the post
-    if visible_tags:
-        total_tag_count += len(visible_tags)
-    if invisible_tags:
-        total_tag_count += len(invisible_tags)
-
-    total_hidden_tag_list = (
-        []
-    )  # keep track of already added hidden tags, so we dont add duplicates
-
-    if len(similar_img_names) == 0:  # only 1 picture (no similar ones)
-        display_text = convert_tags_to_vk_string(visible_tags)
-        hidden_text = convert_tags_to_vk_string(invisible_tags)
-
-    else:  # more than one picture: only display anime name and hide char name
-        try:
-            anime_name = visible_tags[0]
-        except (IndexError, TypeError) as e:
-            anime_name = None
-        try:
-            char_name = visible_tags[1]
-        except (IndexError, TypeError) as e:
-            char_name = None
-
-        if anime_name:
-            display_text = convert_tags_to_vk_string([anime_name])
         else:
-            display_text = ""
+            return convert_tags_to_vk_string([filtered_reddit_posts[0].anime_name])
 
-        if char_name:  # add it to invis tags
-            total_hidden_tag_list.append(char_name)
-            hidden_text = convert_tags_to_vk_string([char_name])
-            hidden_text += convert_tags_to_vk_string(invisible_tags)
-        else:
-            hidden_text = convert_tags_to_vk_string(invisible_tags)
+    def get_list_of_hidden_messages(
+        self, filtered_reddit_posts: list[IdentifiedRedditPost]
+    ) -> list[str]:
+        if len(filtered_reddit_posts) == 0:
+            return [""]
 
-    post_source_link = source_link
-
-    VK_MAX_TAGS_LIMIT = 10
-
-    hidden_text_list = [hidden_text]
-    for img_name in similar_img_names:
-        post = post_data_img_path_dict[img_name]
-        (_, sub_name, source_link, visible_tags, invisible_tags, phash) = post
-        phash_list.append(phash)
-        sub_name_list.append(sub_name)
-        if source_link:
-            hidden_text = source_link + "\n"
-        else:
-            hidden_text = ""
-
-        # get rid of tags that were already used
-        if invisible_tags:
-            invisible_tags = [
-                tag for tag in invisible_tags if tag not in total_hidden_tag_list
+        elif len(filtered_reddit_posts) == 1:
+            only_post = filtered_reddit_posts[0]
+            return [
+                convert_tags_to_vk_string(only_post.invisible_tags)
+                + f"\n {only_post.source_link}"
             ]
+
         else:
-            invisible_tags = []
+            messages: list[str] = []
+            existing_tags: list[str] = []
+            for post in filtered_reddit_posts:
+                msg = ""
+                post_tags = post.invisible_tags
 
-        # add unique ones
-        total_hidden_tag_list += invisible_tags
-        # check VK tags amount limit
-        if total_tag_count + len(invisible_tags) < VK_MAX_TAGS_LIMIT:
-            total_tag_count += len(invisible_tags)
-            hidden_text += convert_tags_to_vk_string(invisible_tags)
-            hidden_text_list.append(hidden_text)
+                # add character name to tags
+                if post.character_name and post.invisible_tags:
+                    post_tags = [post.character_name] + post.invisible_tags
 
-    try:
-        post_photos_to_vk(
-            OWNER_ID,
-            res_img_paths,
-            display_text,
-            post_source_link,
-            hidden_text_list,
-            last_post_date,
+                # filter existing tags
+                if post_tags:
+                    post_tags = [tag for tag in post_tags if tag not in existing_tags]
+
+                    for tag in post_tags:
+                        existing_tags.append(tag)
+
+                    msg = convert_tags_to_vk_string(post_tags)
+
+                if post.source_link:
+                    msg += f"\n {post.source_link}"
+                messages.append(msg)
+
+            return messages
+
+    def get_similar_looking_posts(self) -> list[str]:
+        img_names = [post.get_image_name() for post in self.reddit_posts]
+        similar_img_names = get_similar_imgs_by_histogram_correlation(
+            img_names, CORRELATION_LIMIT=0.85, search_amount=2
         )
-    except Exception as e:
-        raise Exception("Failed to post to vk") from e
+        if not similar_img_names:
+            return
 
-    # cleanup
-
-    # add to vk_post table
-    conn = connect_to_db()
-    for phash, sub_name in zip(phash_list, sub_name_list):
-        insert_vk_record(conn, last_post_date, phash)
-        set_selected_status_by_phash(conn, status=None, phash=phash)
-
-    conn.close()
-
-    # delete files
-    for path in res_img_paths:
-        try:
-            os.remove(path)
-        except Exception:
-            print(f"Couldnt delete file {path}")
-            pass
+        return [
+            post
+            for post in self.reddit_posts
+            if post.get_image_name() in similar_img_names
+        ]
 
 
 if __name__ == "__main__":

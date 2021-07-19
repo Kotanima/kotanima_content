@@ -101,13 +101,14 @@ def add_jikan_response_to_db(conn, jikan_obj):
 
 
 def main():
+    "Use Jikan API to update the database with new anime entries"
+    "New anime ids from MAL are gathered from mal-id-cache repo"
     conn = connect_to_db()
     db_ids = get_all_ids_from_db(conn)
     cache_ids = get_ids_from_mal_id_cache()
     left_over_ids = [cached_id for cached_id in cache_ids if cached_id not in db_ids]
     print(len(left_over_ids))
 
-    # print(left_over_ids)
     jikan = Jikan()
     for anime_id in left_over_ids:
         try:
