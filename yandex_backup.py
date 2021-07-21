@@ -4,13 +4,14 @@ import glob
 import pathlib
 from subprocess import Popen
 from dotenv import load_dotenv, find_dotenv
+
 load_dotenv(find_dotenv())
 
 
 ################################################################################################
 # PATH VARIABLES, CAN CHANGE OR CREATE THESE EXACT FOLDERS (keep structure!!):
 path_to_backup_folder = r"./Backups/"
-path_to_backup_script = r"./sh_scripts/"  # backup.sh script location 
+path_to_backup_script = r"."  # backup.sh script location
 
 ################################################################################################
 path_to_backup_folder = str(pathlib.Path(path_to_backup_folder).absolute())
@@ -18,7 +19,7 @@ path_to_backup_script = str(pathlib.Path(path_to_backup_script).absolute())
 
 
 def get_latest_postgres_dump_path(backup_path):
-    list_of_files = glob.glob(backup_path + '/*')
+    list_of_files = glob.glob(backup_path + "/*")
     latest_file = max(list_of_files, key=os.path.getctime)
     return latest_file
 
@@ -37,8 +38,9 @@ def start_upload_to_yandex():
     y = yadisk.YaDisk(token=oauth_token)
 
     postgres_p = pathlib.Path(get_latest_postgres_dump_path(path_to_backup_folder))
-    y.upload(str(postgres_p),
-             f"/new_django/{postgres_p.name}", overwrite=True, timeout=300)
+    y.upload(
+        str(postgres_p), f"/new_django/{postgres_p.name}", overwrite=True, timeout=300
+    )
 
 
 def main():
