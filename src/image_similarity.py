@@ -105,7 +105,7 @@ def get_similar_imgs_by_histogram_correlation(
                 print("Compare hist error")
                 continue
 
-            if diff > CORRELATION_LIMIT:
+            if diff > CORRELATION_LIMIT and diff != 1:
                 result_images.append(img_name)
                 if len(result_images) == search_amount:
                     return [first_img_name] + result_images
