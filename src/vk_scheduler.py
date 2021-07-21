@@ -151,6 +151,12 @@ class NothingToPostError(Exception):
     pass
 
 
+def mark_as_undownloaded_in_db(phash: str):
+    conn = connect_to_db()
+    set_downloaded_status_by_phash(conn, status=False, phash=phash)
+    conn.close()
+
+
 class VkPost:
     def __init__(
         self,
@@ -176,11 +182,7 @@ class VkPost:
             except IndexError:
                 raise NothingToPostError
 
-            conn = connect_to_db()
-            set_downloaded_status_by_phash(
-                conn, status=False, phash=self.reddit_posts[0].phash
-            )
-            conn.close()
+            mark_as_undownloaded_in_db(phash=self.reddit_posts[0].phash)
             return
 
     def upload(self):
@@ -188,6 +190,7 @@ class VkPost:
             main_post_message = self.get_main_post_message(self.similar_posts)
         except AttributeError:
             print("No file")
+            mark_as_undownloaded_in_db(phash=self.reddit_posts[0].phash)
             raise FileNotFoundError
 
         hidden_messages = self.get_list_of_hidden_messages(self.similar_posts)
