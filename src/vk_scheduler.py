@@ -1,20 +1,16 @@
 import os
 import pathlib
 import random
-from collections import namedtuple
 from itertools import cycle
 
-from cv2 import data
-import attr
 from dotenv import find_dotenv, load_dotenv
-from h5py._hl.files import File
 
 from add_metadata import add_metadata_to_approved_posts
 from image_similarity import (
     generate_hist_cache,
     get_similar_imgs_by_histogram_correlation,
 )
-from models import IdentifiedRedditPost, RedditPost
+from models import IdentifiedRedditPost
 from postgres import (
     aggregate_approved_mal_id_counts,
     connect_to_db,
@@ -120,7 +116,7 @@ class VkScheduler:
         conn = connect_to_db()
         anime_posts = get_approved_anime_posts(conn, mal_id=mal_id)
         conn.close()
-        
+
         if not anime_posts:
             return False
         anime_posts = [IdentifiedRedditPost.from_dict(post) for post in anime_posts]

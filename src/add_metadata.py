@@ -10,12 +10,15 @@ from source_search import get_submission_source
 from tags_resolver import get_mal_id_vis_and_invis_tags
 from models import IdentifiedRedditPost
 
+
 def add_metadata_to_approved_posts():
     conn = connect_to_db()
     approved_posts = get_all_approved_posts(conn)
 
-    for post in approved_posts:
+    for count, post in enumerate(approved_posts):
         r_post = IdentifiedRedditPost.from_metadata_db(post)
+
+        print(f"Adding metadata to {count}/{len(approved_posts)-1}")
 
         # todo uncomment this and bring it back
         if not r_post.source_link and not r_post.visible_tags:
@@ -37,7 +40,7 @@ def add_metadata_to_approved_posts():
                     conn, phash=r_post.phash, invisible_tags=res_invis_tags
                 )
 
-            if not r_post.mal_id:
+            if not r_post.mal_id and res_anime_id: 
                 set_mal_id_by_phash(conn, phash=r_post.phash, mal_id=res_anime_id)
 
     conn.close()

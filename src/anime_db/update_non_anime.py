@@ -24,12 +24,12 @@ def insert_non_anime_record(
 
 if __name__ == "__main__":
     pass
-    # conn = connect_to_db()
-    # insert_non_anime_record(conn, title="Katawa Shoujo",
-    #                         title_japanese=None,
-    #                         title_english=None,
-    #                         title_russian=None,
-    #                         title_synonyms=None,
-    #                         franchise=None)
+    conn = connect_to_db()
+    insert_non_anime_record(conn, title="Overwatch",
+                            title_japanese=None,
+                            title_english=None,
+                            title_russian=None,
+                            title_synonyms=None,
+                            franchise=None)
 
-    # conn.close()
+    conn.close()

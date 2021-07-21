@@ -100,7 +100,10 @@ def get_tags_by_resolving_function_name(detected_obj):
             return visible_tags, invisible_tags
 
         if column_name == "title_english":
-            return [title_english], invisible_tags
+            if title_english:
+                return [title_english], invisible_tags
+            else:
+                return [title], invisible_tags
         else:
             return [title], invisible_tags
 
@@ -148,6 +151,7 @@ def get_mal_id_vis_and_invis_tags(conn, title: str):
         possible_titles = [title]
 
     possible_titles = [modify_daily_text(title) for title in possible_titles]
+    possible_titles = [title for title in possible_titles if 'x-post' not in title.lower()]
     possible_titles.sort(key=len, reverse=True)
 
     # iterate through possible titles and attempt to find anime name
@@ -187,9 +191,7 @@ def get_mal_id_vis_and_invis_tags(conn, title: str):
 
 def main():
     conn = connect_to_db()
-
-    title = "Keeping warm neko [LN]"
-
+    title = """On the train [Virtual YouTuber]"""
     _, vis_tags, invis_tags = get_mal_id_vis_and_invis_tags(conn, title)
     vis_string = convert_tags_to_vk_string(vis_tags)
     invis_string = convert_tags_to_vk_string(invis_tags)

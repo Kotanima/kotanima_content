@@ -1,12 +1,13 @@
 import re
+from _pytest.fixtures import resolve_fixture_function
 
 from psycopg2 import sql
 from slugify import slugify
 
 try:
-    from postgres import connect_to_db
+    from postgres import connect_to_db, is_top_anime
 except ModuleNotFoundError:
-    from src.postgres import connect_to_db
+    from src.postgres import connect_to_db, is_top_anime
 
 from dataclasses import dataclass
 from typing import Optional
@@ -34,6 +35,7 @@ class AnimeDetection:
     def __post_init__(self):
         self.anime_id: int = self.anime_info[0]
         if not is_trusted_result(self.anime_id, self.func_name):
+            self.anime_id = None
             self.anime_info = None
             self.func_name = None
             self.is_from_anime = None
@@ -129,7 +131,9 @@ def slug_text_is_equal_to_slug_column(
             return data
 
 
-def text_is_in_synonyms_array(conn, table_name: str, input_text: str) -> AnimeInfo:
+def text_is_in_synonyms_array(
+    conn, table_name: str, input_text: str, **kwargs
+) -> AnimeInfo:
     with conn:
         with conn.cursor() as cursor:
             query = sql.SQL(
@@ -145,7 +149,7 @@ def text_is_in_synonyms_array(conn, table_name: str, input_text: str) -> AnimeIn
 
 
 def text_is_in_slugified_synonyms_array(
-    conn, table_name: str, input_text: str
+    conn, table_name: str, input_text: str, **kwargs
 ) -> AnimeInfo:
     with conn:
         with conn.cursor() as cursor:
@@ -162,7 +166,7 @@ def text_is_in_slugified_synonyms_array(
 
 
 def text_is_substring_of_franchise(
-    conn, table_name: str, input_text: str
+    conn, table_name: str, input_text: str, **kwargs
 ) -> Optional[AnimeInfo]:
     """Example: input is 'sword_art' which is substring of franchise 'sword_art_online'
 
@@ -188,7 +192,7 @@ def text_is_substring_of_franchise(
 
 
 def text_without_spaces_is_equal_to_franchise_column(
-    conn, table_name: str, input_text: str
+    conn, table_name: str, input_text: str, **kwargs
 ) -> Optional[AnimeInfo]:
     input_text = slugify(input_text)
     input_text = input_text.replace("-", "")
@@ -209,7 +213,7 @@ def text_without_spaces_is_equal_to_franchise_column(
 
 
 def text_without_spaces_is_equal_to_title(
-    conn, table_name: str, input_text: str
+    conn, table_name: str, input_text: str, **kwargs
 ) -> Optional[AnimeInfo]:
     input_text = slugify(input_text)
     input_text = input_text.replace("-", "")
@@ -229,7 +233,7 @@ def text_without_spaces_is_equal_to_title(
 
 
 def text_without_spaces_is_equal_to_title_english(
-    conn, table_name: str, input_text: str
+    conn, table_name: str, input_text: str, **kwargs
 ) -> Optional[AnimeInfo]:
     input_text = slugify(input_text)
     input_text = input_text.replace("-", "")
@@ -250,7 +254,7 @@ def text_without_spaces_is_equal_to_title_english(
 
 
 def text_without_spaces_is_in_synonyms(
-    conn, table_name: str, input_text: str
+    conn, table_name: str, input_text: str, **kwargs
 ) -> Optional[AnimeInfo]:
     input_text = slugify(input_text)
     input_text = input_text.replace("-", "")
@@ -272,7 +276,7 @@ def text_without_spaces_is_in_synonyms(
 
 
 def text_is_substring_of_slug_title(
-    conn, table_name: str, text_input: str
+    conn, table_name: str, input_text: str, **kwargs
 ) -> Optional[AnimeInfo]:
     with conn:
         with conn.cursor() as cursor:
@@ -282,7 +286,7 @@ def text_is_substring_of_slug_title(
             ORDER BY franchise,anime_id ASC"""
             ).format(sql.Identifier(table_name))
 
-            cursor.execute(query, (text_input,))
+            cursor.execute(query, (input_text,))
             data = cursor.fetchall()
             if len(data) == 1:
                 return data
@@ -291,7 +295,7 @@ def text_is_substring_of_slug_title(
 
 
 def text_is_substring_of_slug_title_english(
-    conn, table_name: str, text_input: str
+    conn, table_name: str, input_text: str, **kwargs
 ) -> Optional[AnimeInfo]:
     with conn:
         with conn.cursor() as cursor:
@@ -301,7 +305,7 @@ def text_is_substring_of_slug_title_english(
             ORDER BY franchise,anime_id ASC"""
             ).format(sql.Identifier(table_name))
 
-            cursor.execute(query, (text_input,))
+            cursor.execute(query, (input_text,))
             data = cursor.fetchall()
             if len(data) == 1:
                 return data
@@ -310,7 +314,7 @@ def text_is_substring_of_slug_title_english(
 
 
 def text_is_substring_of_slug_synonym_array(
-    conn, table_name: str, text_input: str
+    conn, table_name: str, input_text: str, **kwargs
 ) -> Optional[AnimeInfo]:
     with conn:
         with conn.cursor() as cursor:
@@ -321,7 +325,7 @@ def text_is_substring_of_slug_synonym_array(
             ORDER BY franchise, anime_id ASC"""
             ).format(sql.Identifier(table_name))
 
-            cursor.execute(query, (text_input,))
+            cursor.execute(query, (input_text,))
             data = cursor.fetchall()
             if len(data) == 1:
                 return data
@@ -330,7 +334,7 @@ def text_is_substring_of_slug_synonym_array(
 
 
 def text_is_substring_of_synonym_array(
-    conn, table_name: str, text_input: str
+    conn, table_name: str, input_text: str, **kwargs
 ) -> Optional[AnimeInfo]:
     with conn:
         with conn.cursor() as cursor:
@@ -341,7 +345,7 @@ def text_is_substring_of_synonym_array(
             ORDER BY franchise, anime_id ASC"""
             ).format(sql.Identifier(table_name))
 
-            cursor.execute(query, (text_input,))
+            cursor.execute(query, (input_text,))
             data = cursor.fetchall()
             if len(data) == 1:
                 return data
@@ -363,6 +367,14 @@ def deal_with_resolutions(input_string: str):
 #########################################################
 DIRECT_SEARCH_FUNCS: list = [text_is_equal_to_column, slug_text_is_equal_to_slug_column]
 
+INACCURATE_SEARCH_FUNCS: list = [
+    text_is_in_synonyms_array,
+    text_is_in_slugified_synonyms_array,
+    text_without_spaces_is_equal_to_title,
+    text_without_spaces_is_equal_to_title_english,
+    text_without_spaces_is_equal_to_franchise_column,
+]
+
 VERY_INACCURATE_SEARCH_FUNCTIONS: list = [
     text_without_spaces_is_in_synonyms,
     text_is_substring_of_slug_title,
@@ -371,14 +383,6 @@ VERY_INACCURATE_SEARCH_FUNCTIONS: list = [
     text_is_substring_of_slug_synonym_array,
     text_is_substring_of_franchise,
 ]
-
-INACCURATE_SEARCH_FUNCS: list = [
-    text_is_in_synonyms_array,
-    text_is_in_slugified_synonyms_array,
-    text_without_spaces_is_equal_to_title,
-    text_without_spaces_is_equal_to_title_english,
-    text_without_spaces_is_equal_to_franchise_column,
-] + VERY_INACCURATE_SEARCH_FUNCTIONS
 
 
 #########################################################
@@ -414,7 +418,9 @@ MAYBE_USE_FRANCHISE: list = [
 
 # make sure the functions that are used for judgement algorithm
 # are the same ones used detection locally
-assert len(DIRECT_SEARCH_FUNCS + INACCURATE_SEARCH_FUNCS) == len(
+assert len(
+    DIRECT_SEARCH_FUNCS + INACCURATE_SEARCH_FUNCS + VERY_INACCURATE_SEARCH_FUNCTIONS
+) == len(
     JUST_USE_TITLE + JUST_USE_SYNONYM_TITLE + JUST_USE_FRANCHISE + MAYBE_USE_FRANCHISE
 )
 
@@ -433,6 +439,9 @@ def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
 
     input_text = input_text.lower()
 
+    if input_text == "original":
+        return
+
     # do deletions first
     if get_number_count_from_string(input_text) > 4:
         input_text = deal_with_resolutions(input_text)
@@ -446,28 +455,51 @@ def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
     input_text = input_text.strip()
     input_text = " ".join(input_text.split())
 
+    if not input_text:
+        return
+
+    # from functools import partial
+    def _find_anime(
+        table_name: str, func_list: list, input_text: str, column: str = None
+    ) -> Optional[AnimeDetection]:
+        for count, func in enumerate(func_list):
+            if anime_info := func(
+                conn, table_name=table_name, column_name=column, input_text=input_text
+            ):
+                detected_anime = AnimeDetection(
+                    anime_info=anime_info[0],
+                    func_name=func_list[count].__name__,
+                    is_from_anime=True if table_name == "anime" else False,
+                    column=column,
+                )
+
+                return detected_anime
+
     for table in ["non_anime", "anime"]:
         for column in ["title", "title_english"]:
-            for count, func in enumerate(DIRECT_SEARCH_FUNCS):
-                if anime_info := func(conn, table, column, input_text):
-                    detected_anime = AnimeDetection(
-                        anime_info=anime_info[0],
-                        func_name=DIRECT_SEARCH_FUNCS[count].__name__,
-                        is_from_anime=True if table == "anime" else False,
-                        column=column,
-                    )
-
-                    return detected_anime
-
-    for count, func in enumerate(INACCURATE_SEARCH_FUNCS):
-        if anime_info := func(conn, "anime", input_text):
-            detected_anime = AnimeDetection(
-                anime_info=anime_info[0],
-                func_name=INACCURATE_SEARCH_FUNCS[count].__name__,
-                is_from_anime=True,
+            detected_anime = _find_anime(
+                input_text=input_text,
+                table_name=table,
+                func_list=DIRECT_SEARCH_FUNCS,
+                column=column,
             )
+            if detected_anime:
+                return detected_anime
 
+    for table in ["non_anime", "anime"]:
+        detected_anime = _find_anime(
+            input_text=input_text, table_name=table, func_list=INACCURATE_SEARCH_FUNCS
+        )
+        if detected_anime:
             return detected_anime
+
+    detected_anime = _find_anime(
+        input_text=input_text,
+        table_name="anime",
+        func_list=VERY_INACCURATE_SEARCH_FUNCTIONS,
+    )
+    if detected_anime:
+        return detected_anime
 
     # in case of failure, try replacing some common patterns and search again
     if "&" in input_text:
@@ -503,20 +535,6 @@ def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
                     return res
 
 
-def is_top_anime(anime_id: int):
-    conn = connect_to_db()
-    with conn:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                "SELECT EXISTS(SELECT 1 FROM top_anime WHERE anime_id=(%s))",
-                (anime_id,),
-            )
-            data = cursor.fetchone()
-
-    conn.close()
-    return data[0]
-
-
 def is_trusted_result(anime_id: int, search_function_name: str) -> bool:
     """If the result was acquired using an inaccurate search function
     and it is not a top/popular anime it is probably wrong
@@ -537,7 +555,7 @@ def is_trusted_result(anime_id: int, search_function_name: str) -> bool:
 
 def main():
     conn = connect_to_db()
-    input_str = "LN"
+    input_str = "The iDOLM@STER Shiny Colors"
     res = detect_anime_from_string(conn, input_str)
     print(res)
 

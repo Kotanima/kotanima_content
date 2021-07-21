@@ -19,6 +19,20 @@ def connect_to_db():
     return connection
 
 
+def is_top_anime(anime_id: int):
+    conn = connect_to_db()
+    with conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT EXISTS(SELECT 1 FROM top_anime WHERE anime_id=(%s))",
+                (anime_id,),
+            )
+            data = cursor.fetchone()
+
+    conn.close()
+    return data[0]
+
+    
 def insert_vk_record(conn, scheduled_date: str, phash: str):
     with conn:
         with conn.cursor() as cursor:

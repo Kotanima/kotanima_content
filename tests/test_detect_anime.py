@@ -41,7 +41,7 @@ def setup_database():
         ("OriginalHolstein", None),
         ("Original", None),
         ("iDOLM@STER: Cinderella Girls", 21409),
-        ("idolmaster", 1694),
+        ("idolmaster", 14),
         ("Kizuna Ai", None),
         ("Fate", 356),
         ("Tales of Destiny 2", None),

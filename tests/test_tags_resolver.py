@@ -17,6 +17,8 @@ def setup_database():
 @pytest.mark.parametrize(
     "title,res_anime,res_char, res_invis_tags",
     [
+        ("Pixiv Artist [Original] [x-post from r/SilverHair]", "AnimeArt", None, None),
+        ("Yokogawa Station, 4:00am [Original] [810x1134]", "AnimeArt", None, None),
         ("Smiling Miku [Vocaloid]", "Vocaloid", "Hatsune_Miku", None),
         ("Keeping warm neko [Original]", "AnimeArt", None, None),
         (

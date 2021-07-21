@@ -91,7 +91,13 @@ def find_and_insert_anime_chars_for_mal_id(conn, anime_mal_id: int) -> None:
 if __name__ == "__main__":
     conn = connect_to_db()
     MAL_ID = 41025
-    find_and_insert_anime_chars_for_mal_id(conn, MAL_ID)
+    # find_and_insert_anime_chars_for_mal_id(conn, MAL_ID)
+    # insert_char_into_db(
+    #     conn,
+    #     anime_mal_id=44042,
+    #     character_mal_id=-12,
+    #     name="IRyS",
+    #     image_url=None,
+    #     role="Main",
+    # )
     conn.close()
-
-    # insert_char_into_db(conn, 14359, -12, 'Hatsune, Miku', image_url=None, role='Main')

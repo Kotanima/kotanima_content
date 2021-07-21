@@ -1,9 +1,8 @@
 from os import times
 import psycopg2
 from ..postgres import connect_to_db
-import jikanpy
+from .update_anime_chars import find_and_insert_anime_chars_for_mal_id
 from jikanpy import Jikan
-from pprint import pprint
 import time
 
 # python -m src.anime_db.update_top_anime
@@ -26,7 +25,9 @@ def main():
             try:
                 insert_top_anime_record(conn, mal_id=mal_id)
             except psycopg2.errors.UniqueViolation:
-                pass
+                continue
+
+            find_and_insert_anime_chars_for_mal_id(conn, anime_mal_id=mal_id)
 
         time.sleep(2)
 
