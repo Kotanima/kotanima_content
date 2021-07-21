@@ -144,6 +144,7 @@ def main():
         scheduler.make_anime_post(random_post=False)
         scheduler.make_anime_post(random_post=True)
         scheduler.make_anime_post(random_post=True)
+        scheduler.make_anime_post(random_post=True)
 
 
 class NothingToPostError(Exception):
