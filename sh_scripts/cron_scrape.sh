@@ -13,5 +13,5 @@ python scrape_reddit.py praw_scrape --subreddit_name="moescape" --amount=1000 --
 python scrape_reddit.py praw_scrape --subreddit_name="fantasymoe" --amount=1000 --PRAW_MODE=PostSearchType.NEW
 python scrape_reddit.py praw_scrape --subreddit_name="awwnime" --amount=1000 --PRAW_MODE=PostSearchType.NEW
 python scrape_reddit.py praw_scrape --subreddit_name="artistic_ecchi" --amount=1000 --PRAW_MODE=PostSearchType.NEW
-python scrape_reddit.py praw_scrape --subreddit_name="ecchi" --amount=1000 --PRAW_MODE=PostSearchType.NEW
+#python scrape_reddit.py praw_scrape --subreddit_name="ecchi" --amount=1000 --PRAW_MODE=PostSearchType.NEW
 python yandex_backup.py

@@ -5,3 +5,7 @@
 source /home/kotanima_project/kotanima_content/.venv/bin/activate
 cd /home/kotanima_project/kotanima_content
 python src/vk_scheduler.py
+python src/vk_scheduler.py
+python src/vk_scheduler.py
+python src/vk_scheduler.py
+python src/vk_scheduler.py
