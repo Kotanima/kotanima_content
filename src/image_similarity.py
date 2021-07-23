@@ -1,3 +1,6 @@
+"""
+Find similar images using opencv by using correlation between color histograms
+"""
 import glob
 import os
 from typing import Optional
@@ -16,7 +19,8 @@ matplotlib.use("Agg")
 # https://www.pyimagesearch.com/2014/07/14/3-ways-compare-histograms-using-opencv-python/
 
 
-def get_hist_for_file(img_path):
+def _get_hist_for_file(img_path):
+    """Get histogram for an image path"""
     try:
         image = cv2.imread(img_path)
         hist = cv2.calcHist(
@@ -31,7 +35,10 @@ def get_hist_for_file(img_path):
 import pathlib
 
 
-def generate_hist_cache():
+def generate_hist_cache() -> None:
+    """Store histograms in an HDF5 storage for future re-use during similar image search.
+    This was necessary because i was running into memory errors otherwise.
+    """
     static_folder = "./static/*.jpg"
     static_images = glob.glob(static_folder)
 
@@ -39,7 +46,7 @@ def generate_hist_cache():
         for img_path in static_images:
             p = pathlib.Path(img_path)
             file_name = p.name
-            hist = get_hist_for_file(str(img_path))
+            hist = _get_hist_for_file(str(img_path))
             if hist is not None:
                 try:
                     f.create_dataset(
@@ -60,9 +67,9 @@ def get_similar_imgs_by_histogram_correlation(
     """Takes first image in img_names list and finds similar ones.
 
     Args:
-        img_names (list): [description]
-        CORRELATION_LIMIT (float, optional): [description]. Defaults to 0.85.
-        search_amount (int, optional): [description]. Defaults to 2.
+        img_names (list):
+        CORRELATION_LIMIT (float, optional): Images with correlation below the threshold will get filtered. Defaults to 0.85.
+        search_amount (int, optional): THe function stops after finding N similar images. Defaults to 2.
 
     Returns:
         list[str]: list that includes base image and best matches
@@ -81,7 +88,7 @@ def get_similar_imgs_by_histogram_correlation(
         try:
             target_hist = h5_arr[first_img_name][:]
         except KeyError:
-            target_hist = get_hist_for_file(first_img_path)
+            target_hist = _get_hist_for_file(first_img_path)
             if target_hist is None:
                 print(f"Couldnt calc hist for {first_img_path}")
                 return
@@ -97,7 +104,7 @@ def get_similar_imgs_by_histogram_correlation(
             try:
                 current_hist = h5_arr[img_name][:]
             except KeyError:
-                current_hist = get_hist_for_file(img_path)
+                current_hist = _get_hist_for_file(img_path)
 
             try:
                 diff = cv2.compareHist(target_hist, current_hist, cv2.HISTCMP_CORREL)
