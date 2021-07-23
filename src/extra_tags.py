@@ -1,3 +1,6 @@
+"""
+Add misc tags like maid/neko etc, based on presence of any/all certain words
+"""
 from dataclasses import dataclass
 from enum import Enum
 import re
