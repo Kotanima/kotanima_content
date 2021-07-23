@@ -1,3 +1,5 @@
+    """Parse reddit comments for a source link
+    """
 import re
 
 import praw
@@ -78,7 +80,10 @@ def insanity_checks(func):
     def wrapper(*args, **kwargs):
         res = func(*args, **kwargs)
         if res:  # not empty
-            if any(text in res for text in ["cdn", "saucenao", "reddit", "youtube", "imgur"]):
+            if any(
+                text in res
+                for text in ["cdn", "saucenao", "reddit", "youtube", "imgur"]
+            ):
                 return None
             if res.startswith("https://www.pixiv.net/en/artworks/"):
                 return res[0:42]
