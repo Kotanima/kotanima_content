@@ -28,7 +28,6 @@ MEGABYTE = 1000000
 GIGABYTE = 1000000000
 
 STATIC_FOLDER_PATH = os.getenv("STATIC_FOLDER_PATH")
-LOCAL_PYTHON_PATH = os.getenv("LOCAL_PYTHON_PATH")
 
 
 # stop downloading files when it gets to the size limit
