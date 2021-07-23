@@ -1,3 +1,7 @@
+"""
+Delete disliked images to free up space and
+Download and optimize new images 
+"""
 import glob
 import os
 import pathlib
@@ -55,8 +59,13 @@ def get_reddit_post_data(cursor, limit: int):
     return data
 
 
-def optimize_image(file_path: str) -> bool:
-    # convert to jpeg
+def optimize_image(file_path: str) -> None:
+    """convert to jpg, reduce filesize
+
+    Args:
+        file_path (str): path to image
+    """
+    #
     new_path = file_path
     if not file_path.endswith(".jpg"):
         new_path = os.path.splitext(file_path)[0] + ".jpg"
