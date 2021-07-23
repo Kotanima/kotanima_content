@@ -1,8 +1,9 @@
-    """Generates vk tags for images.
-    Logic for parsing the detected object and based on titles/english title/russian title
-    decide which one to use in the VK post body and in image descriptions.
-    The imports are doubled because of pytest import errors.
-    """
+"""
+Generates vk tags for images.
+Logic for parsing the detected object and based on titles/english title/russian title
+decide which one to use in the VK post body and in image descriptions.
+The imports are doubled because of pytest import errors.
+"""
 
 import collections
 import re

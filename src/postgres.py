@@ -1,13 +1,18 @@
+"""
+Most of the common interactions with the postgres database are stored here
+"""
+from collections import namedtuple
 import os
 
 import psycopg2
 import psycopg2.extras
+from psycopg2.extensions import connection, cursor
 from dotenv import find_dotenv, load_dotenv
 
 load_dotenv(find_dotenv())
 
 
-def connect_to_db():
+def connect_to_db() -> connection:
     connection = psycopg2.connect(
         user=os.environ.get("DB_USER_NAME"),
         password=os.environ.get("DB_USER_PASSWORD"),
@@ -19,7 +24,14 @@ def connect_to_db():
     return connection
 
 
-def is_top_anime(anime_id: int):
+def is_top_anime(anime_id: int) -> bool:
+    """Check if input anime id is in top_anime postgres table
+    Args:
+        anime_id (int): MyAnimeList anime id
+
+    Returns:
+        bool: True if anime is/was popular
+    """
     conn = connect_to_db()
     with conn:
         with conn.cursor() as cursor:
@@ -32,8 +44,8 @@ def is_top_anime(anime_id: int):
     conn.close()
     return data[0]
 
-    
-def insert_vk_record(conn, scheduled_date: str, phash: str):
+
+def insert_vk_record(conn, scheduled_date: str, phash: str) -> None:
     with conn:
         with conn.cursor() as cursor:
             query = (
@@ -42,7 +54,7 @@ def insert_vk_record(conn, scheduled_date: str, phash: str):
             cursor.execute(query, (scheduled_date, phash))
 
 
-def set_downloaded_status_by_phash(conn, status: bool, phash: str):
+def set_downloaded_status_by_phash(conn, status: bool, phash: str) -> None:
     with conn:
         with conn.cursor() as cursor:
             query = (
@@ -51,14 +63,14 @@ def set_downloaded_status_by_phash(conn, status: bool, phash: str):
             cursor.execute(query, (status, phash))
 
 
-def set_checked_status_by_phash(conn, status: bool, phash: str):
+def set_checked_status_by_phash(conn, status: bool, phash: str) -> None:
     with conn:
         with conn.cursor() as cursor:
             query = """UPDATE my_app_redditpost SET is_checked=(%s) WHERE phash=(%s) """
             cursor.execute(query, (status, phash))
 
 
-def set_disliked_status_by_phash(conn, status: bool, phash: str):
+def set_disliked_status_by_phash(conn, status: bool, phash: str) -> None:
     with conn:
         with conn.cursor() as cursor:
             query = (
@@ -67,7 +79,8 @@ def set_disliked_status_by_phash(conn, status: bool, phash: str):
             cursor.execute(query, (status, phash))
 
 
-def set_wrong_format_status_by_phash(conn, status: bool, phash: str):
+def set_wrong_format_status_by_phash(conn, status: bool, phash: str) -> None:
+    # somewhere around here i wish i used an ORM
     with conn:
         with conn.cursor() as cursor:
             query = (
@@ -76,7 +89,7 @@ def set_wrong_format_status_by_phash(conn, status: bool, phash: str):
             cursor.execute(query, (status, phash))
 
 
-def set_img_source_link_by_phash(conn, phash: str, source_link: str):
+def set_img_source_link_by_phash(conn, phash: str, source_link: str) -> None:
     with conn:
         with conn.cursor() as cursor:
             query = (
@@ -85,7 +98,7 @@ def set_img_source_link_by_phash(conn, phash: str, source_link: str):
             cursor.execute(query, (source_link, phash))
 
 
-def set_visible_tags_by_phash(conn, phash: str, visible_tags: list):
+def set_visible_tags_by_phash(conn, phash: str, visible_tags: list) -> None:
     with conn:
         with conn.cursor() as cursor:
             query = (
@@ -94,7 +107,7 @@ def set_visible_tags_by_phash(conn, phash: str, visible_tags: list):
             cursor.execute(query, (visible_tags, phash))
 
 
-def set_invisible_tags_by_phash(conn, phash: str, invisible_tags: list):
+def set_invisible_tags_by_phash(conn, phash: str, invisible_tags: list) -> None:
     with conn:
         with conn.cursor() as cursor:
             query = (
@@ -103,14 +116,17 @@ def set_invisible_tags_by_phash(conn, phash: str, invisible_tags: list):
             cursor.execute(query, (invisible_tags, phash))
 
 
-def set_mal_id_by_phash(conn, phash: str, mal_id: int):
+def set_mal_id_by_phash(conn, phash: str, mal_id: int) -> None:
     with conn:
         with conn.cursor() as cursor:
             query = """UPDATE my_app_redditpost SET mal_id=(%s) WHERE phash=(%s) """
             cursor.execute(query, (mal_id, phash))
 
 
-def get_approved_original_posts(conn):
+def get_approved_original_posts(conn) -> dict:
+    """
+    Get orginal reddit posts that were manually checked and approved.
+    """
     with conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
             query = """SELECT post_id, sub_name, source_link, visible_tags, invisible_tags, phash
@@ -128,7 +144,10 @@ def get_approved_original_posts(conn):
             return data
 
 
-def get_approved_anime_posts(conn, mal_id):
+def get_approved_anime_posts(conn, mal_id) -> dict:
+    """
+    Get reddit posts for some anime, that were manually checked and approved.
+    """
     with conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
             query = """SELECT post_id, sub_name, source_link, visible_tags, invisible_tags, phash
@@ -162,7 +181,10 @@ def get_all_approved_posts(conn):
             return data
 
 
-def aggregate_approved_mal_id_counts(conn):
+def aggregate_approved_mal_id_counts(conn) -> namedtuple:
+    """
+    Returns most frequent MAL ids (aka most popular shows)
+    """
     with conn:
         with conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor) as cursor:
             query = """SELECT DISTINCT COUNT(mal_id) 

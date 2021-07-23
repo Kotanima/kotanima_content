@@ -1,5 +1,6 @@
-    """Helper functions for VK API
-    """
+"""
+Helper functions for VK API
+"""
 import datetime
 import json
 import os

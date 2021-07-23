@@ -1,5 +1,6 @@
-    """Parse reddit comments for a source link
-    """
+"""
+Parse reddit comments for a source link
+"""
 import re
 
 import praw

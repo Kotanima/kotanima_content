@@ -1,5 +1,6 @@
-    """This module is used to post images to VK.
-    """
+"""
+This module is used to post images to VK.
+"""
 import os
 import pathlib
 import random
