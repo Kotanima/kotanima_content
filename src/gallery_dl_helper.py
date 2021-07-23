@@ -1,6 +1,8 @@
+"""
+This is used to download images from various website. Which turned out to be a much harder task than it seems.
+"""
 import gallery_dl
 from gallery_dl.job import DownloadJob, config
-import pathlib
 from dotenv import load_dotenv, find_dotenv
 import os
 
