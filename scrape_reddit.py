@@ -1,6 +1,10 @@
+"""
+Use praw/psaw api to scrape reddit, store the data in the db,
+and delete the pictures to save space.
+Fire module is used to turn this into a cli.
+"""
 import glob
 import os
-import subprocess
 import time
 import warnings
 from datetime import datetime
@@ -18,6 +22,7 @@ from PIL import Image, ImageFile
 from psaw import PushshiftAPI
 
 from src.gallery_dl_helper import download_pic_from_url
+
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True  # else OsError
 
