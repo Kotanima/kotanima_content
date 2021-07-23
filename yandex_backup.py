@@ -1,3 +1,7 @@
+"""
+Backup the database to yandex disk, because S3 costs money.
+"""
+
 import yadisk
 import os
 import glob
