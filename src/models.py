@@ -1,5 +1,8 @@
+"""
+Commonly used data structures
+"""
+
 from attr import attrs, attrib
-import attr
 
 
 @attrs
@@ -41,8 +44,8 @@ class IdentifiedRedditPost(RedditPost):
     visible_tags: list[str] = attrib(default=None)
     invisible_tags: list[str] = attrib(default=None)
 
-    anime_name : str = attrib(default=None, init=False)
-    character_name : str = attrib(default=None, init=False)
+    anime_name: str = attrib(default=None, init=False)
+    character_name: str = attrib(default=None, init=False)
 
     def __attrs_post_init__(self):
         try:
@@ -52,9 +55,8 @@ class IdentifiedRedditPost(RedditPost):
 
         try:
             self.character_name = self.visible_tags[1]
-        except  (IndexError, TypeError):
+        except (IndexError, TypeError):
             pass
-
 
     @classmethod
     def from_metadata_db(cls, obj):
@@ -67,5 +69,5 @@ class IdentifiedRedditPost(RedditPost):
             source_link=obj.source_link,
             visible_tags=obj.visible_tags,
             invisible_tags=obj.invisible_tags,
-            sub_name=obj.sub_name
+            sub_name=obj.sub_name,
         )

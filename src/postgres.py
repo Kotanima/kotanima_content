@@ -6,7 +6,7 @@ import os
 
 import psycopg2
 import psycopg2.extras
-from psycopg2.extensions import connection, cursor
+from psycopg2.extensions import connection
 from dotenv import find_dotenv, load_dotenv
 
 load_dotenv(find_dotenv())
