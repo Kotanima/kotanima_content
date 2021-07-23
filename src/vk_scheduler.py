@@ -1,3 +1,5 @@
+    """This module is used to post images to VK.
+    """
 import os
 import pathlib
 import random
@@ -33,6 +35,9 @@ DEBUG = False
 
 
 def get_owner_id() -> int:
+    """VK owner id is required to make api calls.
+    krotkadzima group is used for debuggin purposes.
+    """
     if DEBUG:
         return int(os.environ.get("VK_KROTKADZIMA_OWNER_ID"))
     else:
@@ -42,13 +47,13 @@ def get_owner_id() -> int:
 class VkScheduler:
     def __init__(self):
         self._owner_id = get_owner_id()
-        self._set_mal_ids_from_db()
+        self._get_mal_ids_from_db()
 
         vk_info = get_latest_post_date_and_total_post_count(self._owner_id)
         self._postponed_posts_amount = vk_info.post_count or 0
         self._last_postponed_time = vk_info.last_postponed_time or 0
 
-    def _set_mal_ids_from_db(self):
+    def _get_mal_ids_from_db(self):
         conn = connect_to_db()
         self._aggregated_ids = aggregate_approved_mal_id_counts(conn)
         conn.close()
@@ -67,7 +72,7 @@ class VkScheduler:
         return last_post_date
 
     def make_original_post(self) -> bool:
-        """[summary]
+        """Select images that are not from any particular anime.
 
         Returns:
             bool: True, if no more original posts left
@@ -158,42 +163,49 @@ def mark_as_undownloaded_in_db(phash: str):
 
 
 class VkPost:
+    """
+    1) select first reddit post
+    2) find similar images to it
+    3) set main display message text
+    4) set individual images hidden text
+    5) upload to vk
+    """
     def __init__(
         self,
         owner_id: int,
         last_post_date: int,
         reddit_posts: list[IdentifiedRedditPost],
     ):
-        # 1) select first reddit post
-        # 2) find similar images to it
-        # 3) set main display message text
-        # 4) set individual images hidden text
-        # 5) upload to vk
+
+        # if no images were passed in, there is nothing to post
+        try:
+            self.reddit_posts[0]
+        except IndexError:
+            raise NothingToPostError 
+
 
         self.owner_id: int = owner_id
         self.last_post_date: int = last_post_date
         self.reddit_posts: list[IdentifiedRedditPost] = reddit_posts
 
+
         try:
             self.similar_posts = self.get_similar_looking_posts()
         except FileNotFoundError:
-            try:
-                self.reddit_posts[0]
-            except IndexError:
-                raise NothingToPostError
-
+            # image was marked as downloaded in database, but was not found on disk
+            # mark it as not downloaded 
             mark_as_undownloaded_in_db(phash=self.reddit_posts[0].phash)
             return
 
-    def upload(self):
+    def upload(self) -> None:
         try:
-            main_post_message = self.get_main_post_message(self.similar_posts)
+            main_post_message = self._get_main_post_message(self.similar_posts)
         except AttributeError:
             print("No file")
             mark_as_undownloaded_in_db(phash=self.reddit_posts[0].phash)
             raise FileNotFoundError
 
-        hidden_messages = self.get_list_of_hidden_messages(self.similar_posts)
+        hidden_messages = self._get_list_of_hidden_messages(self.similar_posts)
 
         similar_img_paths = [
             str(pathlib.Path(STATIC_PATH, post.get_image_name()))
@@ -216,7 +228,7 @@ class VkPost:
             self.delete_images_from_disk()
 
     def mark_posts_as_uploaded(self):
-        # add to vk_post table
+        # add to vk_post table to keep track of images that were already posted
         conn = connect_to_db()
         for post in self.similar_posts:
             insert_vk_record(conn, self.last_post_date, post.phash)
@@ -238,7 +250,7 @@ class VkPost:
                 print(f"Couldnt delete file {path}")
                 pass
 
-    def get_main_post_message(self, filtered_reddit_posts: list[IdentifiedRedditPost]):
+    def _get_main_post_message(self, filtered_reddit_posts: list[IdentifiedRedditPost]):
         if not filtered_reddit_posts:
             return
 
@@ -252,9 +264,17 @@ class VkPost:
         else:
             return convert_tags_to_vk_string([filtered_reddit_posts[0].anime_name])
 
-    def get_list_of_hidden_messages(
+    def _get_list_of_hidden_messages(
         self, filtered_reddit_posts: list[IdentifiedRedditPost]
     ) -> list[str]:
+        """Each image in VK has its own description. This function generates the description for each image with tags and image source links
+
+        Args:
+            filtered_reddit_posts (list[IdentifiedRedditPost]): input reddit posts
+
+        Returns:
+            list[str]: list of image descriptions
+        """
         if len(filtered_reddit_posts) == 0:
             return [""]
 
@@ -292,6 +312,11 @@ class VkPost:
             return messages
 
     def get_similar_looking_posts(self) -> list[str]:
+        """The first item in the returned list is the base image, and the next ones are most similar-looking to it.
+
+        Returns:
+            list[str]: List of image names
+        """
         img_names = [post.get_image_name() for post in self.reddit_posts]
         similar_img_names = get_similar_imgs_by_histogram_correlation(
             img_names, CORRELATION_LIMIT=0.85, search_amount=2
