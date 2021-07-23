@@ -1,3 +1,9 @@
+    """Generates vk tags for images.
+    Logic for parsing the detected object and based on titles/english title/russian title
+    decide which one to use in the VK post body and in image descriptions.
+    The imports are doubled because of pytest import errors.
+    """
+
 import collections
 import re
 import string
@@ -46,7 +52,7 @@ def unslugify_text(text):
 
 
 def get_tags_by_resolving_function_name(detected_obj):
-    """Based on the function name, generate tags for vk"""
+    """Based on the function name that was used for creating a detected object, generate tags for vk"""
 
     visible_tags = []
     invisible_tags = []
@@ -123,7 +129,7 @@ def get_tags_by_resolving_function_name(detected_obj):
     return DEFAULT_STRING, invisible_tags
 
 
-def convert_tags_to_vk_string(tag_list : list[str]) -> list[str]:
+def convert_tags_to_vk_string(tag_list: list[str]) -> list[str]:
     if not tag_list:
         return ""
     # nobody uses underscore in tags, replace it ..
@@ -133,7 +139,7 @@ def convert_tags_to_vk_string(tag_list : list[str]) -> list[str]:
     return vk_string
 
 
-def modify_daily_text(input_text : str) -> str:
+def modify_daily_text(input_text: str) -> str:
     if "daily" in input_text.lower() and "#" in input_text:
         pattern = re.compile("daily", re.IGNORECASE)
         input_text = pattern.sub("", input_text)
@@ -151,7 +157,9 @@ def get_mal_id_vis_and_invis_tags(conn, title: str):
         possible_titles = [title]
 
     possible_titles = [modify_daily_text(title) for title in possible_titles]
-    possible_titles = [title for title in possible_titles if 'x-post' not in title.lower()]
+    possible_titles = [
+        title for title in possible_titles if "x-post" not in title.lower()
+    ]
     possible_titles.sort(key=len, reverse=True)
 
     # iterate through possible titles and attempt to find anime name
