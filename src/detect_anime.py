@@ -1,5 +1,7 @@
+"""
+Detect anime from string
+"""
 import re
-from _pytest.fixtures import resolve_fixture_function
 
 from psycopg2 import sql
 from slugify import slugify
