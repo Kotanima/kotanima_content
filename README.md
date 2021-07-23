@@ -37,7 +37,7 @@ Project is created with:
 
 ## Deployment
 
-Deployment is desciribed in detail [here](DEPLOYMENT.md)
+Deployment is described in detail [here](DEPLOYMENT.md)
 
 ## License
 
