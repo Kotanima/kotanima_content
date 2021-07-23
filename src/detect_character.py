@@ -1,3 +1,7 @@
+"""
+Find if the text contains a character name 
+"""
+
 from psycopg2 import sql
 
 
@@ -14,10 +18,10 @@ def detect_character(conn, text: str, mal_id: int, is_anime: bool):
         table_name = "non_anime_characters"
 
     for func in [
-        get_main_char_from_db,
-        get_supporting_char_from_db,
-        get_slug_main_char_from_db,
-        get_slug_supporting_char_from_db,
+        _get_main_char_from_db,
+        _get_supporting_char_from_db,
+        _get_slug_main_char_from_db,
+        _get_slug_supporting_char_from_db,
     ]:
         for word in words_arr:
             res = func(conn, table_name, mal_id, word)
@@ -25,15 +29,15 @@ def detect_character(conn, text: str, mal_id: int, is_anime: bool):
                 return "_".join(res[0][0])
 
     # attempt to find character in the same franchise
-    franchise = get_franchise_from_id(conn, is_anime, mal_id)
-    id_list = get_ids_for_franchise(conn, is_anime, franchise)
+    franchise = _get_franchise_from_id(conn, is_anime, mal_id)
+    id_list = _get_ids_for_franchise(conn, is_anime, franchise)
     for id_tuple in id_list:
         mal_id = id_tuple[0]
         for func in [
-            get_main_char_from_db,
-            get_supporting_char_from_db,
-            get_slug_main_char_from_db,
-            get_slug_supporting_char_from_db,
+            _get_main_char_from_db,
+            _get_supporting_char_from_db,
+            _get_slug_main_char_from_db,
+            _get_slug_supporting_char_from_db,
         ]:
             for word in words_arr:
                 res = func(conn, table_name, mal_id, word)
@@ -41,7 +45,7 @@ def detect_character(conn, text: str, mal_id: int, is_anime: bool):
                     return "_".join(res[0][0])
 
 
-def get_franchise_from_id(conn, is_anime: bool, anime_id: int):
+def _get_franchise_from_id(conn, is_anime: bool, anime_id: int):
     if is_anime:
         table_name = "anime"
     else:
@@ -58,7 +62,7 @@ def get_franchise_from_id(conn, is_anime: bool, anime_id: int):
             return data
 
 
-def get_ids_for_franchise(conn, is_anime: bool, franchise: str):
+def _get_ids_for_franchise(conn, is_anime: bool, franchise: str):
     if is_anime:
         table_name = "anime"
     else:
@@ -75,7 +79,7 @@ def get_ids_for_franchise(conn, is_anime: bool, franchise: str):
             return data
 
 
-def get_main_char_from_db(conn, table_name: str, mal_id: int, input_text: str):
+def _get_main_char_from_db(conn, table_name: str, mal_id: int, input_text: str):
     with conn:
         with conn.cursor() as cursor:
             query = sql.SQL(
@@ -95,7 +99,7 @@ def get_main_char_from_db(conn, table_name: str, mal_id: int, input_text: str):
                 return None
 
 
-def get_supporting_char_from_db(conn, table_name: str, mal_id: int, input_text: str):
+def _get_supporting_char_from_db(conn, table_name: str, mal_id: int, input_text: str):
     with conn:
         with conn.cursor() as cursor:
             query = sql.SQL(
@@ -115,7 +119,7 @@ def get_supporting_char_from_db(conn, table_name: str, mal_id: int, input_text: 
                 return None
 
 
-def get_slug_main_char_from_db(conn, table_name: str, mal_id: int, input_text: str):
+def _get_slug_main_char_from_db(conn, table_name: str, mal_id: int, input_text: str):
     with conn:
         with conn.cursor() as cursor:
             query = sql.SQL(
@@ -135,7 +139,7 @@ def get_slug_main_char_from_db(conn, table_name: str, mal_id: int, input_text: s
                 return None
 
 
-def get_slug_supporting_char_from_db(
+def _get_slug_supporting_char_from_db(
     conn, table_name: str, mal_id: int, input_text: str
 ):
     with conn:
