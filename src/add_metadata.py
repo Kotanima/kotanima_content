@@ -1,3 +1,6 @@
+"""
+Use detection modules and store the results in the database
+"""
 from postgres import (
     connect_to_db,
     get_all_approved_posts,
@@ -11,7 +14,7 @@ from tags_resolver import get_mal_id_vis_and_invis_tags
 from models import IdentifiedRedditPost
 
 
-def add_metadata_to_approved_posts():
+def add_metadata_to_approved_posts() -> None:
     conn = connect_to_db()
     approved_posts = get_all_approved_posts(conn)
 
