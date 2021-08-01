@@ -20,6 +20,7 @@ from postgres import (
     set_downloaded_status_by_phash,
     set_wrong_format_status_by_phash,
 )
+from verify_file_integrity import verify_downloaded_files
 
 # load configuration
 load_dotenv(find_dotenv(raise_error_if_not_found=True))
@@ -197,6 +198,7 @@ def main():
     else:
         print("Downloading more")
         download_images(5)
+        verify_downloaded_files()
 
 
 if __name__ == "__main__":

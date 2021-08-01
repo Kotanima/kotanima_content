@@ -144,6 +144,22 @@ def get_approved_original_posts(conn) -> dict:
             return data
 
 
+def get_downloaded_posts(conn) -> dict:
+    """
+    Get reddit posts where images were loaded into static folder
+    """
+    with conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+            query = """
+                    SELECT post_id, sub_name, phash, is_downloaded
+                    FROM my_app_redditpost  
+                    WHERE is_downloaded=true
+                    """
+            cursor.execute(query)
+            data = cursor.fetchall()
+            return data
+
+
 def get_approved_anime_posts(conn, mal_id) -> dict:
     """
     Get reddit posts for some anime, that were manually checked and approved.

@@ -39,7 +39,7 @@ class RedditPost:
 @attrs
 class IdentifiedRedditPost(RedditPost):
     mal_id: int = attrib(default=None)
-    is_downladed: bool = attrib(default=None)
+    is_downloaded: bool = attrib(default=None)
     source_link: str = attrib(default=None)
     visible_tags: list[str] = attrib(default=None)
     invisible_tags: list[str] = attrib(default=None)
