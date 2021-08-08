@@ -3,6 +3,7 @@ Commonly used data structures
 """
 
 from attr import attrs, attrib
+from typing import Optional
 
 
 @attrs
@@ -31,9 +32,10 @@ class RedditPost:
             sub_name=obj.sub_name,
         )
 
-    def get_image_name(self) -> str:
+    def get_image_name(self) -> Optional[str]:
         if self.sub_name and self.post_id:
             return f"{self.sub_name}_{self.post_id}.jpg"
+        return None
 
 
 @attrs

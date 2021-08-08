@@ -3,7 +3,7 @@ Most of the common interactions with the postgres database are stored here
 """
 from collections import namedtuple
 import os
-
+from typing import Type
 import psycopg2
 import psycopg2.extras
 from psycopg2.extensions import connection
@@ -17,8 +17,8 @@ def connect_to_db() -> connection:
         user=os.environ.get("DB_USER_NAME"),
         password=os.environ.get("DB_USER_PASSWORD"),
         host="localhost",
-        port=int(os.environ.get("DB_PORT")),
-        database=os.environ.get("DB_NAME"),
+        port=int(os.environ.get("DB_PORT")), # type: ignore
+        database=os.environ.get("DB_NAME"), # type: ignore
     )
     connection.autocommit = True
     return connection
@@ -181,6 +181,28 @@ def get_approved_anime_posts(conn, mal_id) -> dict:
             return data
 
 
+def get_posts_for_metadata(conn):
+    """
+    Approved posts that dont have any metadata yet.
+    """
+    with conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor) as cursor:
+            query = """SELECT mal_id, title, post_id, author, sub_name, phash, source_link, visible_tags, invisible_tags
+                    FROM my_app_redditpost
+                    WHERE visible_tags is NULL
+                    AND is_downloaded=true 
+                    AND (phash NOT IN (SELECT phash FROM my_app_vkpost))
+                    AND (phash NOT IN (SELECT DISTINCT phash FROM my_app_redditpost where is_disliked=true))
+                    AND is_checked=true
+                    AND is_disliked=false
+                    AND phash IS NOT NULL
+                    AND wrong_format=false
+                    """
+            cursor.execute(query)
+            data = cursor.fetchall()
+            return data
+
+
 def get_all_approved_posts(conn):
     with conn:
         with conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor) as cursor:
@@ -190,14 +212,14 @@ def get_all_approved_posts(conn):
                     AND (phash NOT IN (SELECT phash FROM my_app_vkpost))
                     AND (phash NOT IN (SELECT DISTINCT phash FROM my_app_redditpost where is_disliked=true))
                     AND is_checked=true
-                    AND is_disliked=false 
+                    AND is_disliked=false
                     AND phash IS NOT NULL"""
             cursor.execute(query)
             data = cursor.fetchall()
             return data
 
 
-def aggregate_approved_mal_id_counts(conn) -> namedtuple:
+def aggregate_approved_mal_id_counts(conn) -> Type[tuple]:
     """
     Returns most frequent MAL ids (aka most popular shows)
     """

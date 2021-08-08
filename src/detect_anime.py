@@ -442,7 +442,7 @@ def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
     input_text = input_text.lower()
 
     if input_text == "original":
-        return
+        return None
 
     # do deletions first
     if get_number_count_from_string(input_text) > 4:
@@ -458,7 +458,7 @@ def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
     input_text = " ".join(input_text.split())
 
     if not input_text:
-        return
+        return None
 
     # from functools import partial
     def _find_anime(
@@ -474,8 +474,8 @@ def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
                     is_from_anime=True if table_name == "anime" else False,
                     column=column,
                 )
-
                 return detected_anime
+        return None
 
     for table in ["non_anime", "anime"]:
         for column in ["title", "title_english"]:
@@ -535,6 +535,8 @@ def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
                 res = detect_anime_from_string(conn, title)
                 if res:
                     return res
+
+    return None
 
 
 def is_trusted_result(anime_id: int, search_function_name: str) -> bool:

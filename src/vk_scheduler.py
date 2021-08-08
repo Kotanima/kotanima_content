@@ -41,9 +41,9 @@ def get_owner_id() -> int:
     krotkadzima group is used for debuggin purposes.
     """
     if DEBUG:
-        return int(os.environ.get("VK_KROTKADZIMA_OWNER_ID"))
+        return int(os.environ.get("VK_KROTKADZIMA_OWNER_ID")) # type: ignore
     else:
-        return int(os.environ.get("VK_KOTANIMA_OWNER_ID"))
+        return int(os.environ.get("VK_KOTANIMA_OWNER_ID")) # type: ignore
 
 
 class VkScheduler:
@@ -97,6 +97,7 @@ class VkScheduler:
         vk_post.upload()
 
         self._postponed_posts_amount += 1
+        return True
 
     def make_anime_post(self, random_post=False) -> bool:
         """select random or next most popular myanimelist id and post to vk
@@ -135,6 +136,7 @@ class VkScheduler:
         )
         vk_post.upload()
         self._postponed_posts_amount += 1
+        return True
 
     def get_postponed_posts_amount(self):
         return self._postponed_posts_amount
@@ -202,6 +204,9 @@ class VkPost:
             raise FileNotFoundError
 
         hidden_messages = self._get_list_of_hidden_messages(self.similar_posts)
+
+
+        assert isinstance(STATIC_PATH, str)
 
         similar_img_paths = [
             str(pathlib.Path(STATIC_PATH, post.get_image_name()))

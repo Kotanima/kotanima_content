@@ -83,7 +83,7 @@ def optimize_image(file_path: str) -> None:
             pass
 
 
-def rename_latest_file_in_folder(folder: str, new_filename: str) -> Path:
+def rename_latest_file_in_folder(folder: str, new_filename: str) -> Optional[Path]:
     """Gallery-dl loads images with random names, rename the latest downloaded one
     to {new_filename} + {.ext}
 
@@ -96,7 +96,7 @@ def rename_latest_file_in_folder(folder: str, new_filename: str) -> Path:
     file_path = get_latest_filename_in_folder(folder)
     if not file_path:
         print("No file path found")
-        return
+        return None
     old_ext = file_path.suffix
     old_path = Path(file_path).resolve().parent
     new_path = Path(old_path, new_filename + old_ext)
@@ -120,6 +120,7 @@ def get_latest_filename_in_folder(folder: str) -> Optional[Path]:
 
 def get_static_folder_size() -> int:
     # this is non recursive
+    assert isinstance(STATIC_FOLDER_PATH, str)
     root_directory = Path(STATIC_FOLDER_PATH)
     return sum(f.stat().st_size for f in root_directory.glob("**/*") if f.is_file())
 
@@ -154,6 +155,7 @@ def download_images(amount: int) -> None:
                 )
                 continue
             else:
+                assert isinstance(STATIC_FOLDER_PATH, str)
                 file_path = rename_latest_file_in_folder(
                     STATIC_FOLDER_PATH, f"{reddit_post.sub_name}_{reddit_post.post_id}"
                 )
