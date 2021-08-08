@@ -5,9 +5,10 @@ import os
 import pathlib
 import random
 from itertools import cycle
-
+from typing import Optional
 from dotenv import find_dotenv, load_dotenv
 
+from dataclasses import dataclass
 from add_metadata import add_metadata_to_approved_posts
 from image_similarity import (
     generate_hist_cache,
@@ -163,6 +164,7 @@ def mark_as_undownloaded_in_db(phash: str):
     conn.close()
 
 
+@dataclass
 class VkPost:
     """
     1) select first reddit post
@@ -171,30 +173,23 @@ class VkPost:
     4) set individual images hidden text
     5) upload to vk
     """
-    def __init__(
-        self,
-        owner_id: int,
-        last_post_date: int,
-        reddit_posts: list[IdentifiedRedditPost],
-    ):
 
+    owner_id: int
+    last_post_date: int
+    reddit_posts: list[IdentifiedRedditPost]
+
+    def __post_init__(self):
         # if no images were passed in, there is nothing to post
         try:
             self.reddit_posts[0]
         except IndexError:
-            raise NothingToPostError 
-
-
-        self.owner_id: int = owner_id
-        self.last_post_date: int = last_post_date
-        self.reddit_posts: list[IdentifiedRedditPost] = reddit_posts
-
+            raise NothingToPostError
 
         try:
             self.similar_posts = self.get_similar_looking_posts()
         except FileNotFoundError:
             # image was marked as downloaded in database, but was not found on disk
-            # mark it as not downloaded 
+            # mark it as not downloaded
             mark_as_undownloaded_in_db(phash=self.reddit_posts[0].phash)
             return
 
@@ -312,7 +307,7 @@ class VkPost:
 
             return messages
 
-    def get_similar_looking_posts(self) -> list[str]:
+    def get_similar_looking_posts(self) -> Optional[list[str]]:
         """The first item in the returned list is the base image, and the next ones are most similar-looking to it.
 
         Returns:
@@ -323,7 +318,7 @@ class VkPost:
             img_names, CORRELATION_LIMIT=0.85, search_amount=2
         )
         if not similar_img_names:
-            return
+            return None
 
         return [
             post
