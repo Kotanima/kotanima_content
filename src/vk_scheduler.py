@@ -9,26 +9,50 @@ from typing import Optional
 from dotenv import find_dotenv, load_dotenv
 
 from dataclasses import dataclass
-from add_metadata import add_metadata_to_approved_posts
-from image_similarity import (
-    generate_hist_cache,
-    get_similar_imgs_by_histogram_correlation,
-)
-from models import IdentifiedRedditPost
-from postgres import (
-    aggregate_approved_mal_id_counts,
-    connect_to_db,
-    get_approved_anime_posts,
-    get_approved_original_posts,
-    insert_vk_record,
-    set_downloaded_status_by_phash,
-)
-from tags_resolver import convert_tags_to_vk_string
-from vk_helper import (
-    get_latest_post_date_and_total_post_count,
-    get_random_time_next_hour,
-    post_photos_to_vk,
-)
+
+try:
+    from add_metadata import add_metadata_to_approved_posts
+    from image_similarity import (
+        generate_hist_cache,
+        get_similar_imgs_by_histogram_correlation,
+    )
+    from models import IdentifiedRedditPost
+    from postgres import (
+        aggregate_approved_mal_id_counts,
+        connect_to_db,
+        get_approved_anime_posts,
+        get_approved_original_posts,
+        insert_vk_record,
+        set_downloaded_status_by_phash,
+    )
+    from tags_resolver import convert_tags_to_vk_string
+    from vk_helper import (
+        get_latest_post_date_and_total_post_count,
+        get_random_time_next_hour,
+        post_photos_to_vk,
+    )
+except ModuleNotFoundError:
+    from src.add_metadata import add_metadata_to_approved_posts
+    from src.image_similarity import (
+        generate_hist_cache,
+        get_similar_imgs_by_histogram_correlation,
+    )
+    from src.models import IdentifiedRedditPost
+    from src.postgres import (
+        aggregate_approved_mal_id_counts,
+        connect_to_db,
+        get_approved_anime_posts,
+        get_approved_original_posts,
+        insert_vk_record,
+        set_downloaded_status_by_phash,
+    )
+    from src.tags_resolver import convert_tags_to_vk_string
+    from src.vk_helper import (
+        get_latest_post_date_and_total_post_count,
+        get_random_time_next_hour,
+        post_photos_to_vk,
+    )
+
 
 load_dotenv(find_dotenv(raise_error_if_not_found=True))
 STATIC_PATH = os.getenv("STATIC_FOLDER_PATH")
@@ -41,9 +65,9 @@ def get_owner_id() -> int:
     krotkadzima group is used for debuggin purposes.
     """
     if DEBUG:
-        return int(os.environ.get("VK_KROTKADZIMA_OWNER_ID")) # type: ignore
+        return int(os.environ.get("VK_KROTKADZIMA_OWNER_ID"))  # type: ignore
     else:
-        return int(os.environ.get("VK_KOTANIMA_OWNER_ID")) # type: ignore
+        return int(os.environ.get("VK_KOTANIMA_OWNER_ID"))  # type: ignore
 
 
 class VkScheduler:
@@ -205,7 +229,6 @@ class VkPost:
 
         hidden_messages = self._get_list_of_hidden_messages(self.similar_posts)
 
-
         assert isinstance(STATIC_PATH, str)
 
         similar_img_paths = [
@@ -294,8 +317,11 @@ class VkPost:
                 post_tags = post.invisible_tags
 
                 # add character name to tags
-                if post.character_name and post.invisible_tags:
-                    post_tags = [post.character_name] + post.invisible_tags
+                if post.character_name:
+                    post_tags = [post.character_name]
+
+                if post.invisible_tags:
+                    post_tags += post.invisible_tags
 
                 # filter existing tags
                 if post_tags:
@@ -316,7 +342,7 @@ class VkPost:
         """The first item in the returned list is the base image, and the next ones are most similar-looking to it.
 
         Returns:
-            list[str]: List of image names
+            list[str]: List of similar looking reddit posts 
         """
         img_names = [post.get_image_name() for post in self.reddit_posts]
         similar_img_names = get_similar_imgs_by_histogram_correlation(

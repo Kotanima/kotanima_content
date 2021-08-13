@@ -517,7 +517,7 @@ def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
             return res
 
     # sometimes there are two titles split by comma, or slash
-    try_again_chars = [",", "/", " x ", "-", ":"]
+    try_again_chars = [",", "/", " x ", ":"]
     for char in try_again_chars:
         if char in input_text and input_text.count(char) < 2:
             possible_titles = input_text.split(char)
@@ -559,7 +559,7 @@ def is_trusted_result(anime_id: int, search_function_name: str) -> bool:
 
 def main():
     conn = connect_to_db()
-    input_str = "The iDOLM@STER Shiny Colors"
+    input_str = "Under Night In-Birth"
     res = detect_anime_from_string(conn, input_str)
     print(res)
 

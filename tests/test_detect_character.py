@@ -2,6 +2,10 @@ import pytest
 from src.postgres import connect_to_db
 from src.detect_character import detect_character
 
+# pytest -n auto
+# OR
+# pytest -x ./tests/test_detect_character.py
+
 
 @pytest.fixture
 def setup_database():
@@ -9,9 +13,6 @@ def setup_database():
     conn = connect_to_db()
     print("setup db")
     yield conn
-
-
-# pytest -x ./tests/test_detect_character.py
 
 
 @pytest.mark.parametrize(

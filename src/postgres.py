@@ -17,8 +17,8 @@ def connect_to_db() -> connection:
         user=os.environ.get("DB_USER_NAME"),
         password=os.environ.get("DB_USER_PASSWORD"),
         host="localhost",
-        port=int(os.environ.get("DB_PORT")), # type: ignore
-        database=os.environ.get("DB_NAME"), # type: ignore
+        port=int(os.environ.get("DB_PORT")),  # type: ignore
+        database=os.environ.get("DB_NAME"),  # type: ignore
     )
     connection.autocommit = True
     return connection
@@ -251,3 +251,19 @@ def get_disliked_posts(conn):
             cursor.execute(query)
             data = cursor.fetchall()
             return data
+
+
+def main():
+    conn = connect_to_db()
+    res = get_approved_anime_posts(conn, 44042)
+    print(res)
+    print(dir(res))
+    print(type(res))
+    print(res[0])
+    print(type(res[0]))
+    print(list(res[0].keys()))
+    conn.close()
+
+
+if __name__ == "__main__":
+    main()

@@ -2,6 +2,10 @@ import collections
 import pytest
 from src.tags_resolver import get_mal_id_vis_and_invis_tags, connect_to_db
 
+# pytest -n auto
+# OR
+# pytest -x ./tests/test_tags_resolver.py
+
 
 @pytest.fixture
 def setup_database():
@@ -9,9 +13,6 @@ def setup_database():
     conn = connect_to_db()
     print("setup db")
     yield conn
-
-
-# pytest -x ./tests/test_tags_resolver.py
 
 
 @pytest.mark.parametrize(

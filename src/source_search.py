@@ -7,7 +7,10 @@ import praw
 from prawcore.exceptions import ResponseException
 from psaw import PushshiftAPI
 
-from detect_anime import get_text_inside_brackets
+try:
+    from detect_anime import get_text_inside_brackets
+except ModuleNotFoundError:
+    from src.detect_anime import get_text_inside_brackets
 
 
 def validate_url(url):

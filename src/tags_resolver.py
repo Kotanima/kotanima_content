@@ -130,7 +130,7 @@ def get_tags_by_resolving_function_name(detected_obj):
     return DEFAULT_STRING, invisible_tags
 
 
-def convert_tags_to_vk_string(tag_list: list[str]) -> list[str]:
+def convert_tags_to_vk_string(tag_list: list[str]) -> str:
     if not tag_list:
         return ""
     # nobody uses underscore in tags, replace it ..
@@ -200,7 +200,7 @@ def get_mal_id_vis_and_invis_tags(conn, title: str):
 
 def main():
     conn = connect_to_db()
-    title = """On the train [Virtual YouTuber]"""
+    title = """Orie [Under Night In-Birth]"""
     _, vis_tags, invis_tags = get_mal_id_vis_and_invis_tags(conn, title)
     vis_string = convert_tags_to_vk_string(vis_tags)
     invis_string = convert_tags_to_vk_string(invis_tags)

@@ -14,6 +14,10 @@ from src.detect_anime import (
     detect_anime_from_string,
 )
 
+# pytest -n auto
+# OR
+# pytest -x ./tests/test_detect_anime.py
+
 
 @pytest.fixture
 def setup_database():
@@ -21,9 +25,6 @@ def setup_database():
     conn = connect_to_db()
     print("setup db")
     yield conn
-
-
-# pytest -x ./tests/test_detect_anime.py
 
 
 @pytest.mark.parametrize(

@@ -1,17 +1,30 @@
 """
 Use detection modules and store the results in the database
 """
-from postgres import (
-    connect_to_db,
-    get_posts_for_metadata,
-    set_img_source_link_by_phash,
-    set_invisible_tags_by_phash,
-    set_mal_id_by_phash,
-    set_visible_tags_by_phash,
-)
-from source_search import get_submission_source
-from tags_resolver import get_mal_id_vis_and_invis_tags
-from models import IdentifiedRedditPost
+try:
+    from postgres import (
+        connect_to_db,
+        get_posts_for_metadata,
+        set_img_source_link_by_phash,
+        set_invisible_tags_by_phash,
+        set_mal_id_by_phash,
+        set_visible_tags_by_phash,
+    )
+    from source_search import get_submission_source
+    from tags_resolver import get_mal_id_vis_and_invis_tags
+    from models import IdentifiedRedditPost
+except ModuleNotFoundError:
+    from src.postgres import (
+        connect_to_db,
+        get_posts_for_metadata,
+        set_img_source_link_by_phash,
+        set_invisible_tags_by_phash,
+        set_mal_id_by_phash,
+        set_visible_tags_by_phash,
+    )
+    from src.source_search import get_submission_source
+    from src.tags_resolver import get_mal_id_vis_and_invis_tags
+    from src.models import IdentifiedRedditPost
 
 
 def add_metadata_to_approved_posts() -> None:

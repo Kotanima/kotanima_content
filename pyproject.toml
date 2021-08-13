@@ -27,6 +27,7 @@ yadisk = "^1.2.14"
 fire = "^0.4.0"
 ImageHash = "^4.2.0"
 h5py = "^3.2.1"
+pytest-xdist = "^2.3.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.3"
