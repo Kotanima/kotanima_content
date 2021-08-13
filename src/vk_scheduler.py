@@ -342,7 +342,7 @@ class VkPost:
         """The first item in the returned list is the base image, and the next ones are most similar-looking to it.
 
         Returns:
-            list[str]: List of similar looking reddit posts 
+            list[str]: List of similar looking reddit posts
         """
         img_names = [post.get_image_name() for post in self.reddit_posts]
         similar_img_names = get_similar_imgs_by_histogram_correlation(

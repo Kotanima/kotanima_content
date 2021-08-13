@@ -52,6 +52,23 @@ def unslugify_text(text):
     return uppercased.replace("-", "_")
 
 
+def remove_non_alphanumeric_symbols(input_text) -> str:
+    # remove non alpha-numeric symbols
+    input_text = re.sub("[^0-9a-zA-ZА-Яа-яЁё]+", "_", input_text)
+    input_text = input_text.split("_")
+    input_text = [x for x in input_text if x]  # remove empty items
+    input_text = "_".join(input_text)
+    input_text = string.capwords(input_text, sep="_")
+    return input_text
+
+
+def remove_idolmaster(input_text) -> str:
+    # fuck idolmaster
+    input_text = input_text.replace("Idolm_Ster", "Idolmaster")
+    input_text = input_text.replace("Idolm_ster", "Idolmaster")
+    return input_text
+
+
 def get_tags_by_resolving_function_name(detected_obj):
     """Based on the function name that was used for creating a detected object, generate tags for vk"""
 
@@ -61,27 +78,25 @@ def get_tags_by_resolving_function_name(detected_obj):
     if not detected_obj or not detected_obj.anime_info:
         return [DEFAULT_STRING], []
 
-    (anime_id, title, title_english, russian_title, franchise) = detected_obj.anime_info
+    title = detected_obj.anime_info.title
+    title_english = detected_obj.anime_info.title_english
+    title_russian = detected_obj.anime_info.title_russian
+    franchise = detected_obj.anime_info.franchise
 
-    if russian_title:
-        # remove non alpha-numeric symbols
-        russian_title = re.sub("[^0-9a-zA-ZА-Яа-яЁё]+", "_", russian_title)
-        russian_title = russian_title.split("_")
-        russian_title = [x for x in russian_title if x]  # remove empty items
-        russian_title = "_".join(russian_title)
-        russian_title = string.capwords(russian_title, sep="_")
+    if title_russian:
+        title_russian = remove_non_alphanumeric_symbols(title_russian)
 
     if title:
         title = unslugify_text(title)
-        # fuck idolmaster
+
         if "idolm_ster" in title.lower():
-            title = title.replace("Idolm_Ster", "Idolmaster")
-            title = title.replace("Idolm_ster", "Idolmaster")
+            title = remove_idolmaster(title)
+
     if title_english:
         title_english = unslugify_text(title_english)
         if "idolm_ster" in title_english.lower():
-            title_english = title_english.replace("Idolm_Ster", "Idolmaster")
-            title_english = title_english.replace("Idolm_ster", "Idolmaster")
+            title_english = remove_idolmaster(title_english)
+
     if franchise:
         franchise = string.capwords(franchise, sep="_")
 
@@ -98,8 +113,8 @@ def get_tags_by_resolving_function_name(detected_obj):
         column_name = detected_obj.column
 
     if func_name in JUST_USE_TITLE_FUNC_NAMES + JUST_USE_SYNONYM_TITLE_FUNC_NAMES:
-        if russian_title:
-            visible_tags.append(russian_title)
+        if title_russian:
+            visible_tags.append(title_russian)
             for arg in [title, title_english, franchise]:
                 if arg:
                     invisible_tags.append(arg)
@@ -166,13 +181,13 @@ def get_mal_id_vis_and_invis_tags(conn, title: str):
     # iterate through possible titles and attempt to find anime name
     for temp_title in possible_titles:
         detected_obj = detect_anime_from_string(conn, temp_title)
-        if detected_obj:
+        if detected_obj or temp_title.lower() == "original":
             break
 
     # detect anime
     vis_tags, invis_tags = get_tags_by_resolving_function_name(detected_obj)
 
-    if detected_obj is not None:
+    if detected_obj is not None and detected_obj.anime_info is not None:
         # detect char name
         if char := detect_character(
             conn, title, detected_obj.anime_id, detected_obj.is_from_anime
@@ -192,7 +207,7 @@ def get_mal_id_vis_and_invis_tags(conn, title: str):
         else:
             invis_tags = extra_tags
 
-    if detected_obj is not None:
+    if detected_obj is not None and detected_obj.anime_info is not None:
         return detected_obj.anime_id, vis_tags, invis_tags
     else:
         return None, vis_tags, invis_tags
@@ -200,7 +215,7 @@ def get_mal_id_vis_and_invis_tags(conn, title: str):
 
 def main():
     conn = connect_to_db()
-    title = """Orie [Under Night In-Birth]"""
+    title = """."""
     _, vis_tags, invis_tags = get_mal_id_vis_and_invis_tags(conn, title)
     vis_string = convert_tags_to_vk_string(vis_tags)
     invis_string = convert_tags_to_vk_string(invis_tags)

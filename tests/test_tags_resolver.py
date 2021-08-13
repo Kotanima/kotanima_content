@@ -18,6 +18,15 @@ def setup_database():
 @pytest.mark.parametrize(
     "title,res_anime,res_char, res_invis_tags",
     [
+        ("Hanging out together [空をサカナが泳ぐ頃]", "AnimeArt", None, None),
+        ("Not one piece [.]", "AnimeArt", None, None),
+        ("Not one piece [ポップコーン・ラバーズ あの日出会った君と僕の四季]", "AnimeArt", None, None),
+        (
+            "Making Wishes at the Star Festival (Tanabata) [Original]",
+            "AnimeArt",
+            None,
+            None,
+        ),
         ("Pixiv Artist [Original] [x-post from r/SilverHair]", "AnimeArt", None, None),
         ("Yokogawa Station, 4:00am [Original] [810x1134]", "AnimeArt", None, None),
         ("Smiling Miku [Vocaloid]", "Vocaloid", "Hatsune_Miku", None),

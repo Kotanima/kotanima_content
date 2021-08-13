@@ -13,6 +13,7 @@ except ModuleNotFoundError:
 
 from dataclasses import dataclass
 from typing import Optional
+from langdetect import detect
 
 
 @dataclass
@@ -20,10 +21,21 @@ class AnimeInfo:
     anime_id: int
     # slug is short for slugified - the text that is
     # stripped of diacritic symbols, invalid chars etc
-    slug_title_syn: list[str]
+    title: str
     title_english: str
     title_russian: str
     franchise: str
+    slug_title_syn: Optional[list[str]] = None
+
+    @classmethod
+    def from_tuple(cls, obj):
+        return cls(
+            anime_id=obj[0],
+            title=obj[1],
+            title_english=obj[2],
+            title_russian=obj[3],
+            franchise=obj[4],
+        )
 
 
 @dataclass
@@ -33,9 +45,13 @@ class AnimeDetection:
     # there are also some non-anime sources (games etc)
     is_from_anime: bool
     column: Optional[str] = None
+    anime_id: Optional[int] = None
 
     def __post_init__(self):
-        self.anime_id: int = self.anime_info[0]
+        try:
+            self.anime_id: int = self.anime_info.anime_id
+        except AttributeError:
+            return
         if not is_trusted_result(self.anime_id, self.func_name):
             self.anime_id = None
             self.anime_info = None
@@ -419,12 +435,29 @@ MAYBE_USE_FRANCHISE: list = [
 ]
 
 # make sure the functions that are used for judgement algorithm
-# are the same ones used detection locally
+# are the same ones used for detection locally
 assert len(
     DIRECT_SEARCH_FUNCS + INACCURATE_SEARCH_FUNCS + VERY_INACCURATE_SEARCH_FUNCTIONS
 ) == len(
     JUST_USE_TITLE + JUST_USE_SYNONYM_TITLE + JUST_USE_FRANCHISE + MAYBE_USE_FRANCHISE
 )
+
+
+def _find_anime(
+    conn, table_name: str, func_list: list, input_text: str, column: str = None
+) -> Optional[AnimeDetection]:
+    for count, func in enumerate(func_list):
+        if anime_info := func(
+            conn, table_name=table_name, column_name=column, input_text=input_text
+        ):
+            detected_anime = AnimeDetection(
+                anime_info=AnimeInfo.from_tuple(anime_info[0]),
+                func_name=func_list[count].__name__,
+                is_from_anime=True if table_name == "anime" else False,
+                column=column,
+            )
+            return detected_anime
+    return None
 
 
 def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
@@ -444,7 +477,12 @@ def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
     if input_text == "original":
         return None
 
-    # do deletions first
+    # something stupid like only one dot, would get
+    # identified as one piece somehow
+    if not slugify(input_text):
+        return None
+
+    # modify input text
     if get_number_count_from_string(input_text) > 4:
         input_text = deal_with_resolutions(input_text)
 
@@ -454,32 +492,20 @@ def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
     if "&amp;" in input_text:
         input_text = input_text.replace("&amp;", "&")
 
+    # dont accept JP input
+    if not input_text.isascii():
+        return None
+
     input_text = input_text.strip()
     input_text = " ".join(input_text.split())
 
     if not input_text:
         return None
 
-    # from functools import partial
-    def _find_anime(
-        table_name: str, func_list: list, input_text: str, column: str = None
-    ) -> Optional[AnimeDetection]:
-        for count, func in enumerate(func_list):
-            if anime_info := func(
-                conn, table_name=table_name, column_name=column, input_text=input_text
-            ):
-                detected_anime = AnimeDetection(
-                    anime_info=anime_info[0],
-                    func_name=func_list[count].__name__,
-                    is_from_anime=True if table_name == "anime" else False,
-                    column=column,
-                )
-                return detected_anime
-        return None
-
     for table in ["non_anime", "anime"]:
         for column in ["title", "title_english"]:
             detected_anime = _find_anime(
+                conn,
                 input_text=input_text,
                 table_name=table,
                 func_list=DIRECT_SEARCH_FUNCS,
@@ -490,12 +516,16 @@ def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
 
     for table in ["non_anime", "anime"]:
         detected_anime = _find_anime(
-            input_text=input_text, table_name=table, func_list=INACCURATE_SEARCH_FUNCS
+            conn,
+            input_text=input_text,
+            table_name=table,
+            func_list=INACCURATE_SEARCH_FUNCS,
         )
         if detected_anime:
             return detected_anime
 
     detected_anime = _find_anime(
+        conn,
         input_text=input_text,
         table_name="anime",
         func_list=VERY_INACCURATE_SEARCH_FUNCTIONS,
@@ -559,7 +589,7 @@ def is_trusted_result(anime_id: int, search_function_name: str) -> bool:
 
 def main():
     conn = connect_to_db()
-    input_str = "Under Night In-Birth"
+    input_str = "."
     res = detect_anime_from_string(conn, input_str)
     print(res)
 
