@@ -18,13 +18,13 @@ from typing import Optional
 @dataclass
 class AnimeInfo:
     anime_id: int
-    # slug is short for slugified - the text that is
-    # stripped of diacritic symbols, invalid chars etc
     title: str
     title_english: str
     title_russian: str
     franchise: str
     slug_title_syn: Optional[list[str]] = None
+    # slug is short for slugified - the text that is
+    # stripped of diacritic symbols, invalid chars etc
 
     @classmethod
     def from_tuple(cls, obj):
@@ -459,7 +459,7 @@ def _find_anime(
     return None
 
 
-def detect_anime_from_string(conn, input_text) -> Optional[AnimeDetection]:
+def detect_anime_from_string(conn, input_text : str) -> Optional[AnimeDetection]:
     """
     Sanitize input text.
     Then attempt to find anime, with methods ordered from highest accuracy to lowest
