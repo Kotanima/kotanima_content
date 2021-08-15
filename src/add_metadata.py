@@ -35,8 +35,6 @@ def add_metadata_to_approved_posts() -> None:
         r_post = IdentifiedRedditPost.from_metadata_db(post)
 
         print(f"Adding metadata to {count}/{len(approved_posts)-1}")
-        if count == 5113:
-            print(r_post)
 
         if not r_post.source_link and not r_post.visible_tags:
             src_link = get_submission_source(r_post.post_id, r_post.author)
