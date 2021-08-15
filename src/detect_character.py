@@ -24,8 +24,7 @@ def detect_character(conn, text: str, mal_id: int, is_anime: bool):
         _get_slug_supporting_char_from_db,
     ]:
         for word in words_arr:
-            res = func(conn, table_name, mal_id, word)
-            if res:
+            if res := func(conn, table_name, mal_id, word):
                 return "_".join(res[0][0])
 
     # attempt to find character in the same franchise
@@ -40,8 +39,7 @@ def detect_character(conn, text: str, mal_id: int, is_anime: bool):
             _get_slug_supporting_char_from_db,
         ]:
             for word in words_arr:
-                res = func(conn, table_name, mal_id, word)
-                if res:
+                if res := func(conn, table_name, mal_id, word):
                     return "_".join(res[0][0])
 
 
