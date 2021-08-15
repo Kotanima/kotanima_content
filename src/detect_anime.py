@@ -13,7 +13,6 @@ except ModuleNotFoundError:
 
 from dataclasses import dataclass
 from typing import Optional
-from langdetect import detect
 
 
 @dataclass

@@ -192,6 +192,7 @@ def get_mal_id_vis_and_invis_tags(conn, title: str):
         if char := detect_character(
             conn, title, detected_obj.anime_id, detected_obj.is_from_anime
         ):
+            char = remove_non_alphanumeric_symbols(char)
             vis_tags.append(char)
 
     # dont store duplicate tags
