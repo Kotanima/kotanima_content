@@ -148,6 +148,8 @@ def get_tags_by_resolving_function_name(detected_obj):
 def convert_tags_to_vk_string(tag_list: list[str]) -> str:
     if not tag_list:
         return ""
+        
+    tag_list = list(set(tag_list))
     # nobody uses underscore in tags, replace it ..
     tag_list = [tag.replace("_", "") for tag in tag_list]
     tag_list = ["#" + tag + POSTFIX for tag in tag_list]
