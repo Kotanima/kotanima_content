@@ -39,6 +39,16 @@ def download_pic_from_url(url: str, folder=os.getenv("STATIC_FOLDER_PATH")) -> b
         "refresh-token",
         os.getenv("GALLERY_DL_REFRESH_TOKEN"),
     )
+    config.set(
+        ("extractor", "devianart"),
+        "client-id",
+        os.getenv("DA_CLIENT_ID"),
+    )
+    config.set(
+        ("extractor", "devianart"),
+        "client-secret",
+        os.getenv("DA_CLIENT_SECRET"),
+    )
     config.set(("extractor", "pixiv"), "avatar", False)
     config.set(("extractor", "pixiv"), "ugoira", False)
 
