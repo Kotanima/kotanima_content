@@ -5,12 +5,13 @@ Fire module is used to turn this into a cli.
 """
 import glob
 import os
+import signal
 import time
 import warnings
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, List, Tuple, Optional
+from typing import Any, List, Optional, Tuple
 
 import fire
 import imagehash
@@ -22,7 +23,6 @@ from PIL import Image, ImageFile
 from psaw import PushshiftAPI
 
 from src.gallery_dl_helper import download_pic_from_url
-
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True  # else OsError
 
@@ -62,6 +62,11 @@ def close_postgres_connection(connection, cursor):
     connection.commit()
     cursor.close()
     connection.close()
+
+
+def timeout_handler(num, stack):
+    print("Received SIGALARM")
+    raise Exception("DownloadIsTooLong")
 
 
 def rename_latest_file_in_folder(folder: str, new_filename: str):
@@ -192,9 +197,18 @@ class Scraper:
                     filtered_submissions.append((subm, True, None))
                     continue
 
-                did_load = download_pic_from_url(
-                    url=subm.url, folder=self.download_folder
-                )
+                signal.signal(signal.SIGALRM, timeout_handler)
+                signal.alarm(60)
+                try:
+                    did_load = download_pic_from_url(
+                        url=subm.url, folder=self.download_folder
+                    )
+                except Exception as ex:
+                    did_load = False
+                    print(f"Aborting download of {subm.url}")
+                finally:
+                    signal.alarm(0)  # Disable the alarm
+
                 if did_load:
                     new_name = get_filename_from_subm(subm)
                     new_path = rename_latest_file_in_folder(
