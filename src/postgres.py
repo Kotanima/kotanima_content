@@ -138,16 +138,16 @@ def get_approved_original_posts(conn) -> dict:
     """
     with conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
-            query = """SELECT post_id, sub_name, source_link, visible_tags, invisible_tags, phash
-                    FROM my_app_redditpost 
-                    WHERE is_downloaded=true
-                    AND (phash NOT IN (SELECT phash FROM my_app_vkpost))
-                    AND (phash NOT IN (SELECT DISTINCT phash FROM my_app_redditpost where is_disliked=true))
-                    AND is_checked=true
-                    AND is_disliked=false 
-                    AND (mal_id=31687 OR mal_id IS NULL) 
-                    ORDER BY random() 
-                """
+            query = """select mar.post_id, mar.sub_name, mar.source_link, mar.visible_tags, mar.invisible_tags, mar.phash from my_app_redditpost mar 
+            left join my_app_vkpost mav on mar.phash=mav.phash where mav.phash is null
+            and (mar.phash NOT IN (SELECT DISTINCT phash FROM my_app_redditpost where is_disliked=true))
+            AND (mar.sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape'))
+            AND mar.is_downloaded=true
+            AND mar.is_checked=true
+            AND mar.is_disliked=false 
+            AND (mar.mal_id=31687 OR mar.mal_id IS NULL) 
+            ORDER BY random() 
+            """
             cursor.execute(query)
             data = cursor.fetchall()
             return data
@@ -175,16 +175,18 @@ def get_approved_anime_posts(conn, mal_id) -> dict:
     """
     with conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
-            query = """SELECT post_id, sub_name, source_link, visible_tags, invisible_tags, phash
-                    FROM my_app_redditpost  
-                    WHERE mal_id=(%s) 
-                    AND (phash NOT IN (SELECT phash FROM my_app_vkpost))
-                    AND (phash NOT IN (SELECT DISTINCT phash FROM my_app_redditpost where is_disliked=true))
-                    AND is_downloaded=true
-                    AND is_checked=true
-                    AND is_disliked=false 
-
-                """
+            query = """select mar.post_id, mar.sub_name, mar.source_link, mar.visible_tags,
+            mar.invisible_tags, mar.phash 
+            FROM my_app_redditpost mar LEFT JOIN my_app_vkpost mav 
+            on mar.phash=mav.phash 
+            WHERE mav.phash is null
+            AND (mar.phash NOT IN (SELECT DISTINCT phash FROM my_app_redditpost where is_disliked=true))
+            AND mar.mal_id=(%s) 
+            AND (mar.sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape'))
+            AND mar.is_downloaded=true
+            AND mar.is_checked=true
+            AND mar.is_disliked=false 
+            """
             cursor.execute(query, (mal_id,))
             data = cursor.fetchall()
             return data
@@ -196,17 +198,19 @@ def get_posts_for_metadata(conn):
     """
     with conn:
         with conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor) as cursor:
-            query = """SELECT mal_id, title, post_id, author, sub_name, phash, source_link, visible_tags, invisible_tags
-                    FROM my_app_redditpost
-                    WHERE visible_tags is NULL
-                    AND is_downloaded=true 
-                    AND (phash NOT IN (SELECT phash FROM my_app_vkpost))
-                    AND (phash NOT IN (SELECT DISTINCT phash FROM my_app_redditpost where is_disliked=true))
-                    AND is_checked=true
-                    AND is_disliked=false
-                    AND phash IS NOT NULL
-                    AND wrong_format=false
-                    """
+            query = """select mar.mal_id, mar.title, mar.post_id, mar.author, mar.sub_name, mar.phash, mar.source_link, mar.visible_tags, mar.invisible_tags
+            FROM my_app_redditpost mar LEFT JOIN my_app_vkpost mav 
+            on mar.phash=mav.phash 
+            WHERE mav.phash is null
+            AND is_downloaded=true 
+            AND (mar.sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape'))
+            AND (mar.phash NOT IN (SELECT DISTINCT phash FROM my_app_redditpost where is_disliked=true))
+            AND mar.visible_tags is NULL
+            AND mar.is_checked=true
+            AND mar.is_disliked=false
+            AND mar.phash IS NOT NULL
+            AND mar.wrong_format=false
+            """
             cursor.execute(query)
             data = cursor.fetchall()
             return data
@@ -215,14 +219,16 @@ def get_posts_for_metadata(conn):
 def get_all_approved_posts(conn):
     with conn:
         with conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor) as cursor:
-            query = """SELECT mal_id, title, post_id, author, sub_name, phash, source_link, visible_tags, invisible_tags
-                    FROM my_app_redditpost
-                    WHERE is_downloaded=true 
-                    AND (phash NOT IN (SELECT phash FROM my_app_vkpost))
-                    AND (phash NOT IN (SELECT DISTINCT phash FROM my_app_redditpost where is_disliked=true))
-                    AND is_checked=true
-                    AND is_disliked=false
-                    AND phash IS NOT NULL"""
+            query = """select  mar.mal_id, mar.title, mar.post_id, mar.author, mar.sub_name, mar.phash, mar.source_link, mar.visible_tags, mar.invisible_tags
+            FROM my_app_redditpost mar LEFT JOIN my_app_vkpost mav 
+            on mar.phash=mav.phash 
+            WHERE mav.phash is null
+            AND (mar.phash NOT IN (SELECT DISTINCT phash FROM my_app_redditpost where is_disliked=true))
+            AND mar.is_downloaded=true 
+            AND mar.is_checked=true
+            AND mar.is_disliked=false
+            AND mar.phash IS NOT NULL
+            """
             cursor.execute(query)
             data = cursor.fetchall()
             return data
