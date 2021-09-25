@@ -63,6 +63,15 @@ def set_downloaded_status_by_phash(conn, status: bool, phash: str) -> None:
             cursor.execute(query, (status, phash))
 
 
+def set_downloaded_status_by_post_id_and_phash(
+    conn, status: bool, post_id: str, sub_name: str
+) -> None:
+    with conn:
+        with conn.cursor() as cursor:
+            query = """UPDATE my_app_redditpost SET is_downloaded=(%s) WHERE post_id=(%s) and sub_name=(%s)"""
+            cursor.execute(query, (status, post_id, sub_name))
+
+
 def set_checked_status_by_phash(conn, status: bool, phash: str) -> None:
     with conn:
         with conn.cursor() as cursor:

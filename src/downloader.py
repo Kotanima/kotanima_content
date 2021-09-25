@@ -168,7 +168,6 @@ def download_images(amount: int) -> None:
 
     finally:
         if connection:
-            connection.commit()
             connection.close()
 
 

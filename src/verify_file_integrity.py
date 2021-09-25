@@ -6,7 +6,11 @@ check if they actually exist on disk
 import psycopg2
 from dotenv import load_dotenv, find_dotenv
 
-from postgres import connect_to_db, set_downloaded_status_by_phash, get_downloaded_posts
+from postgres import (
+    connect_to_db,
+    set_downloaded_status_by_post_id_and_phash,
+    get_downloaded_posts,
+)
 from models import IdentifiedRedditPost
 from pathlib import Path
 import os
@@ -27,6 +31,7 @@ def verify_downloaded_files():
             phash=post_info[2],
             is_downloaded=post_info[3],
         )
+
         if not reddit_post.is_downloaded:
             raise Exception(
                 "Posts gathered from database should have been marked as downloaded"
@@ -35,9 +40,15 @@ def verify_downloaded_files():
         current_file = Path(STATIC_FOLDER_PATH, reddit_post.get_image_name())
         if not current_file.is_file():
             print(f"File DOESNT EXIST: {str(current_file)}")
-            set_downloaded_status_by_phash(conn, status=False, phash=reddit_post.phash)
+            set_downloaded_status_by_post_id_and_phash(
+                conn,
+                status=False,
+                post_id=reddit_post.post_id,
+                sub_name=reddit_post.sub_name,
+            )
 
     if conn:
+        conn.commit()
         conn.close()
 
 
