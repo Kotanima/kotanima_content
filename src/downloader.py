@@ -40,16 +40,16 @@ FOLDER_SIZE_LIMIT = 5 * GIGABYTE
 
 
 def get_reddit_post_data(cursor, limit: int):
-    query = f"""SELECT post_id, author, created_utc, title, url, phash, sub_name FROM my_app_redditpost 
-                WHERE (phash NOT IN (SELECT phash FROM my_app_vkpost))
-                AND (phash NOT IN (SELECT DISTINCT phash FROM my_app_redditpost where is_disliked=true))
-                AND (sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape'))
-                AND is_downloaded=false
-                AND is_checked=false
-                AND is_disliked!=true
-                AND wrong_format!=true
-                ORDER BY created_utc DESC
-                LIMIT (%s)"""
+    query = """select mar.post_id, mar.author, mar.created_utc, mar.title, mar.url, mar.phash, mar.sub_name from my_app_redditpost mar 
+            left join my_app_vkpost mav on mar.phash=mav.phash where mav.phash is null
+            and (mar.phash NOT IN (SELECT DISTINCT phash FROM my_app_redditpost where is_disliked=true))
+            AND (mar.sub_name IN ('awwnime','fantasymoe','patchuu','awenime','moescape'))
+            AND mar.is_downloaded=false
+            AND mar.is_checked=false
+            AND mar.wrong_format=false
+            ORDER BY created_utc DESC
+            LIMIT (%s)
+            """
 
     try:
         cursor.execute(query, (limit,))
