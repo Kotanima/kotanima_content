@@ -14,7 +14,7 @@ DEBUG = False
 
 HOME_PATH = os.environ.get("HOME")
 PATH_TO_MAL_ID_CACHE = str(
-    pathlib.Path(HOME_PATH, "mal-id-cache/cache/anime_cache.json")
+    pathlib.Path(HOME_PATH, "kotanima_project/mal-id-cache/cache/anime_cache.json")
 )
 
 if DEBUG:
