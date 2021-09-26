@@ -13,7 +13,7 @@ from ..postgres import connect_to_db
 DEBUG = False
 
 PATH_TO_MAL_ID_CACHE = str(
-    pathlib.Path("home/kotanima_project/mal-id-cache/cache/anime_cache.json")
+    pathlib.Path("/home/kotanima_project/mal-id-cache/cache/anime_cache.json")
 )
 
 if DEBUG:
