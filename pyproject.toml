@@ -5,7 +5,7 @@ description = ""
 authors = ["b0und <f1arenova1@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.10"
+python = ">=3.8,<3.10"
 psycopg2-binary = "^2.8.6"
 Pillow = "^8.2.0"
 gallery-dl = "^1.17.2"

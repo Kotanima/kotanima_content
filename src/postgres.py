@@ -11,7 +11,6 @@ from dotenv import find_dotenv, load_dotenv
 
 load_dotenv(find_dotenv())
 
-
 def connect_to_db() -> connection:
     connection = psycopg2.connect(
         user=os.environ.get("DB_USER_NAME"),
